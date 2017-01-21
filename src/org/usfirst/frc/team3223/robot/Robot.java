@@ -31,7 +31,7 @@ public class Robot extends IterativeRobot implements ITableListener{
     Command autonomousCommand;
     NetworkTable networkTable;
     private double motorSpeed = 0;
-    private static final int F_L_PORT = 0, F_R_PORT = 1, B_L_PORT = 2, B_R_PORT = 3, SHOOT_PORT = 4;
+    private static final int F_L_PORT = 7, F_R_PORT = 9, B_L_PORT = 6, B_R_PORT = 8, SHOOT_PORT = 4;
     private Joystick[] pilots;
     private int currPilot = 0;
     /*buttons: 1 a, 2 b, 3 x, 4 y, 5 lb, 6 rb, 7 back, 8 start, 9 l3, 10 r3
@@ -85,11 +85,13 @@ returns degrees from north, clockwise, -1 if not pressed.
      * This function is called periodically during operator control
      */
     public void teleopPeriodic() {
+    	//switching
     	if(pilots[(currPilot+1) % 2].getRawButton(4))//if not-pilot push y
     	{
     		currPilot = (currPilot+1) % 2;//switch pilot
     	}
     	
+    	//moving
     	double x = pilots[currPilot].getRawAxis(0);//x of l stick
         double y = pilots[currPilot].getRawAxis(1);//y of l stick
         double rotation = pilots[currPilot].getRawAxis(3) - pilots[currPilot].getRawAxis(2); //triggers: right - left to turn
@@ -97,9 +99,8 @@ returns degrees from north, clockwise, -1 if not pressed.
     	//may need to make rotation*-1
         //gyroAngle may need to not be 0
         masterDrive.mecanumDrive_Cartesian(l,r,rotation,0);//x,y,rotation,gyroAngle)
-    	/*
-    	fore_left_motor.set(motorSpeed);
-    	*/
+        
+        //shooting
         if(pilots[currPilot].getRawButton(5))
         {
         	shoot_motor.set(1);
