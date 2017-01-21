@@ -31,9 +31,11 @@ public class Robot extends IterativeRobot implements ITableListener{
     Command autonomousCommand;
     NetworkTable networkTable;
     private double motorSpeed = 0;
-    private static final int F_L_PORT = 0, F_R_PORT = 1, B_L_PORT = 2, B_R_PORT = 3;
-    private Joystick joystick;
+    private static final int F_L_PORT = 0, F_R_PORT = 1, B_L_PORT = 2, B_R_PORT = 3, SHOOT_PORT = 4;
+    private Joystick[] pilots;
+    private int currPilot = 0;
     /*buttons: 1 a, 2 b, 3 x, 4 y, 5 lb, 6 rb, 7 back, 8 start, 9 l3, 10 r3
+     * public boolean getRawButton(int button)
     Axis indexes:
 0- LeftX
 1 - LeftY
@@ -41,11 +43,12 @@ public class Robot extends IterativeRobot implements ITableListener{
 3 - Right Trigger (0-1)
 4 - RightX
 5 - RightY
+public double getRawAxis(int axis)
 
 public int getPOV(int pov) - for d-pad
 returns degrees from north, clockwise, -1 if not pressed.
     */
-    private SpeedController fore_left_motor, fore_right_motor, back_left_motor, back_right_motor;
+    private SpeedController fore_left_motor, fore_right_motor, back_left_motor, back_right_motor, shoot_motor;
     private RobotDrive masterDrive;
     /**
      * This function is run when the robot is first started up and should be
@@ -53,13 +56,16 @@ returns degrees from north, clockwise, -1 if not pressed.
      */
     public void robotInit() {
         // Initialize all subsystems
-        joystick = new Joystick(0);//0 is joystick import port on driver panel
+        pilots[0] = new Joystick(0);//0 is joystick import port on driver panel
+        pilots[1] = new Joystick(1);
         
         fore_left_motor = new Talon(F_L_PORT);
 		fore_right_motor = new Talon(F_R_PORT);
 		back_left_motor = new Talon(B_L_PORT);
 		back_right_motor = new Talon(B_R_PORT);
 		masterDrive = new RobotDrive(fore_left_motor, back_left_motor, fore_right_motor, back_right_motor);
+		
+		shoot_motor = new Talon(SHOOT_PORT);
 		
 		networkTable = NetworkTable.getTable("SmartDashboard");
 		networkTable.addTableListener(this);
@@ -79,9 +85,14 @@ returns degrees from north, clockwise, -1 if not pressed.
      * This function is called periodically during operator control
      */
     public void teleopPeriodic() {
-    	double x = joystick.getRawAxis(0);//x of l stick
-        double y = joystick.getRawAxis(1);//y of l stick
-        double rotation = joystick.getRawAxis(3) - joystick.getRawAxis(2); //triggers: right - left to turn
+    	if(pilots[(currPilot+1) % 2].getRawButton(4))//if not-pilot push y
+    	{
+    		currPilot = (currPilot+1) % 2;//switch pilot
+    	}
+    	
+    	double x = pilots[currPilot].getRawAxis(0);//x of l stick
+        double y = pilots[currPilot].getRawAxis(1);//y of l stick
+        double rotation = pilots[currPilot].getRawAxis(3) - pilots[currPilot].getRawAxis(2); //triggers: right - left to turn
         // ^should make 1 when only RT, -1 when only LT
     	//may need to make rotation*-1
         //gyroAngle may need to not be 0
@@ -89,6 +100,14 @@ returns degrees from north, clockwise, -1 if not pressed.
     	/*
     	fore_left_motor.set(motorSpeed);
     	*/
+        if(pilots[currPilot].getRawButton(5))
+        {
+        	shoot_motor.set(1);
+        }
+        if(pilots[currPilot].getRawButton(6))
+        {
+        	shoot_motor.set(0);
+        }
     }
     
     /**
