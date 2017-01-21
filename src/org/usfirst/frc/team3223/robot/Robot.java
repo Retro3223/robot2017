@@ -98,7 +98,7 @@ returns degrees from north, clockwise, -1 if not pressed.
         // ^should make 1 when only RT, -1 when only LT
     	//may need to make rotation*-1
         //gyroAngle may need to not be 0
-        masterDrive.mecanumDrive_Cartesian(l,r,rotation,0);//x,y,rotation,gyroAngle)
+        masterDrive.mecanumDrive_Cartesian(x,y,rotation,0);
         
         //shooting
         if(pilots[currPilot].getRawButton(5))
