@@ -41,6 +41,9 @@ public class Robot extends IterativeRobot implements ITableListener{
 3 - Right Trigger (0-1)
 4 - RightX
 5 - RightY
+
+public int getPOV(int pov) - for d-pad
+returns degrees from north, clockwise, -1 if not pressed.
     */
     private SpeedController fore_left_motor, fore_right_motor, back_left_motor, back_right_motor;
     private RobotDrive masterDrive;
@@ -79,6 +82,7 @@ public class Robot extends IterativeRobot implements ITableListener{
     	double x = joystick.getRawAxis(0);//x of l stick
         double y = joystick.getRawAxis(1);//y of l stick
         double rotation = joystick.getRawAxis(3) - joystick.getRawAxis(2); //triggers: right - left to turn
+        // ^should make 1 when only RT, -1 when only LT
     	//may need to make rotation*-1
         //gyroAngle may need to not be 0
         masterDrive.mecanumDrive_Cartesian(l,r,rotation,0);//x,y,rotation,gyroAngle)
