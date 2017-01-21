@@ -80,7 +80,8 @@ public class Robot extends IterativeRobot implements ITableListener{
         double y = joystick.getRawAxis(2);//y of l stick
         double rotation = joystick.getRawAxis(3);//triggers: right - left
     	//may need to make rotation*-1
-        masterDrive.mecanumDrive_Cartesian(l,r,0,0);//x,y,rotation,gyroAngle)
+        //gyroAngle may need to not be 0
+        masterDrive.mecanumDrive_Cartesian(l,r,rotation,0);//x,y,rotation,gyroAngle)
     	/*
     	fore_left_motor.set(motorSpeed);
     	*/
@@ -90,14 +91,7 @@ public class Robot extends IterativeRobot implements ITableListener{
      * This function is called periodically during test mode
      */
     public void testPeriodic() {
-    	/*
-    	double l = -joystick.getRawAxis(1);
-    	double r = joystick.getRawAxis(5);
-    	System.out.println("r:"+r);
-    	System.out.println("l:"+l);
-    	left_motor.set(l);
-    	right_motor.set(r);
-    	*/
+    	
     }
     @Override
     public void valueChanged(ITable table, String name, Object value, boolean isNew) {
