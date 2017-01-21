@@ -35,12 +35,12 @@ public class Robot extends IterativeRobot implements ITableListener{
     private Joystick joystick;
     /*buttons: 1 a, 2 b, 3 x, 4 y, 5 lb, 6 rb, 7 back, 8 start, 9 l3, 10 r3
     Axis indexes:
-1 - LeftX
-2 - LeftY
-3 - Triggers (Each trigger = 0 to 1, axis value = right - left)
+0- LeftX
+1 - LeftY
+2 - Left Trigger (0-1)
+3 - Right Trigger (0-1)
 4 - RightX
 5 - RightY
-6 - DPad Left/Right
     */
     private SpeedController fore_left_motor, fore_right_motor, back_left_motor, back_right_motor;
     private RobotDrive masterDrive;
@@ -50,7 +50,7 @@ public class Robot extends IterativeRobot implements ITableListener{
      */
     public void robotInit() {
         // Initialize all subsystems
-        joystick = new Joystick(0);
+        joystick = new Joystick(0);//0 is joystick import port on driver panel
         
         fore_left_motor = new Talon(F_L_PORT);
 		fore_right_motor = new Talon(F_R_PORT);
@@ -76,9 +76,9 @@ public class Robot extends IterativeRobot implements ITableListener{
      * This function is called periodically during operator control
      */
     public void teleopPeriodic() {
-    	double x = joystick.getRawAxis(1);//x of l stick
-        double y = joystick.getRawAxis(2);//y of l stick
-        double rotation = joystick.getRawAxis(3);//triggers: right - left
+    	double x = joystick.getRawAxis(0);//x of l stick
+        double y = joystick.getRawAxis(1);//y of l stick
+        double rotation = joystick.getRawAxis(3) - joystick.getRawAxis(2); //triggers: right - left to turn
     	//may need to make rotation*-1
         //gyroAngle may need to not be 0
         masterDrive.mecanumDrive_Cartesian(l,r,rotation,0);//x,y,rotation,gyroAngle)
