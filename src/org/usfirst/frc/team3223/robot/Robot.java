@@ -12,6 +12,8 @@ import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.SpeedController;
 import edu.wpi.first.wpilibj.Talon;
 import edu.wpi.first.wpilibj.RobotDrive;
+import edu.wpi.first.wpilibj.GenericHID;
+import edu.wpi.first.wpilibj.GenericHID.RumbleType;
 import edu.wpi.first.wpilibj.command.Command;
 import edu.wpi.first.wpilibj.command.Scheduler;
 import edu.wpi.first.wpilibj.livewindow.LiveWindow;
@@ -32,8 +34,9 @@ public class Robot extends IterativeRobot implements ITableListener{
     NetworkTable networkTable;
     private double motorSpeed = 0;
     private static final int F_L_PORT = 7, F_R_PORT = 9, B_L_PORT = 6, B_R_PORT = 8, SHOOT_PORT = 4;
-    private Joystick[] pilots;
+    private Joystick[] pilots = new Joystick[2];
     private int currPilot = 0;
+    private int rumbleCount;
     /*buttons: 1 a, 2 b, 3 x, 4 y, 5 lb, 6 rb, 7 back, 8 start, 9 l3, 10 r3
      * public boolean getRawButton(int button)
     Axis indexes:
@@ -63,6 +66,10 @@ returns degrees from north, clockwise, -1 if not pressed.
 		fore_right_motor = new Talon(F_R_PORT);
 		back_left_motor = new Talon(B_L_PORT);
 		back_right_motor = new Talon(B_R_PORT);
+		
+		fore_right_motor.setInverted(true);//for whatever reason, right side motors spin wrong way.
+		back_right_motor.setInverted(true);//therefore, invert the motors in code.
+		
 		masterDrive = new RobotDrive(fore_left_motor, back_left_motor, fore_right_motor, back_right_motor);
 		
 		shoot_motor = new Talon(SHOOT_PORT);
@@ -86,9 +93,24 @@ returns degrees from north, clockwise, -1 if not pressed.
      */
     public void teleopPeriodic() {
     	//switching
-    	if(pilots[(currPilot+1) % 2].getRawButton(4))//if not-pilot push y
+    	if(rumbleCount==0)
     	{
-    		currPilot = (currPilot+1) % 2;//switch pilot
+    		pilots[(currPilot+1) % 2].setRumble(GenericHID.RumbleType.kLeftRumble,0);
+    		pilots[(currPilot+1) % 2].setRumble(GenericHID.RumbleType.kRightRumble,0);	
+    	}
+    	if(rumbleCount<0)
+    	{
+    		if(pilots[(currPilot+1) % 2].getRawButton(4))//if not-pilot push y
+    		{
+    			pilots[currPilot].setRumble(GenericHID.RumbleType.kLeftRumble,1);
+    			pilots[currPilot].setRumble(GenericHID.RumbleType.kRightRumble,1);
+    			currPilot = (currPilot+1) % 2;//switch pilot 
+    			rumbleCount = 10;
+    		}
+    	}
+    	else
+    	{
+    		rumbleCount--;
     	}
     	
     	//moving
