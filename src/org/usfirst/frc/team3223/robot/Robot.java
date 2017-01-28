@@ -32,6 +32,17 @@ import edu.wpi.first.wpilibj.networktables.NetworkTable;
 public class Robot extends IterativeRobot implements ITableListener{
    Command autonomousCommand;
    NetworkTable networkTable;
+   /*
+    SmartDashboard.putString("DB/String 0", "My 21 Char TestString");
+    String dashData = SmartDashboard.getString("DB/String 0", "myDefaultData");
+   
+    SmartDashboard.putBoolean("DB/Button 0", true);
+    (default value of false): boolean buttonValue = SmartDashboard.getBoolean("DB/Button 0", false);
+
+    SmartDashboard.putNumber("DB/Slider 0", 2.58);
+    (default value of 0.0): double dashData = SmartDashboard.getNumber("DB/Slider 0", 0.0);
+
+   */
    private double motorSpeed = 0;
    private static final int F_L_PORT = 7, F_R_PORT = 9, B_L_PORT = 6, B_R_PORT = 8, SHOOT_PORT = 4, ROPE_PORT = 5;
    private Joystick[] pilots = new Joystick[2];
@@ -73,7 +84,7 @@ returns degrees from north, clockwise, -1 if not pressed.
       masterDrive = new RobotDrive(fore_left_motor, back_left_motor, fore_right_motor, back_right_motor);
    	
       shoot_motor = new Talon(SHOOT_PORT);
-   	rope_motor = new Talon(ROPE_PORT);
+      rope_motor = new Talon(ROPE_PORT);
       
       networkTable = NetworkTable.getTable("SmartDashboard");
       networkTable.addTableListener(this);
@@ -94,7 +105,13 @@ returns degrees from north, clockwise, -1 if not pressed.
      */
    public void teleopPeriodic() {
     	//switching
-       SmartDashboard.putString("DB/String 0", "My 21 Char TestString");
+      //* SHOOTER TESTER
+      double speed = SmartDashboard.getNumber("DB/Slider 0", 0.0);
+      shoot_motor.set(speed);
+      //*/
+      
+      /* ACTUAL CODE
+      SmartDashboard.putString("DB/String 0", "My 21 Char TestString");
       if(rumbleCount==0)
       {
          pilots[(currPilot+1) % 2].setRumble(GenericHID.RumbleType.kLeftRumble,0);
@@ -143,6 +160,7 @@ returns degrees from north, clockwise, -1 if not pressed.
       {
          shoot_motor.set(0);
       }
+      //*/
    }
     
     /**
