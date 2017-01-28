@@ -112,12 +112,22 @@ returns degrees from north, clockwise, -1 if not pressed.
     	{
     		rumbleCount--;
     	}
-    	
-    	//moving
-    	double x = pilots[currPilot].getRawAxis(0);//x of l stick
-        double y = pilots[currPilot].getRawAxis(1);//y of l stick
-        double rotation = pilots[currPilot].getRawAxis(3) - pilots[currPilot].getRawAxis(2); //triggers: right - left to turn
-        // ^should make 1 when only RT, -1 when only LT
+    	double x = 0;
+    	double y = 0;
+    	double rotation = 0;
+    	if(getPOV(0)==-1)
+    	{
+    		//moving
+    	 x = pilots[currPilot].getRawAxis(0);//x of l stick
+         y = pilots[currPilot].getRawAxis(1);//y of l stick
+         rotation = pilots[currPilot].getRawAxis(3) - pilots[currPilot].getRawAxis(2); //triggers: right - left to turn
+    	}
+    	else
+    	{
+    		x = Math.cos(pilots[0].getPOV(0)*Math.PI/180);
+    		y = Math.sin(pilots[0].getPOV(0)*Math.PI/180);
+    	}
+         // ^should make 1 when only RT, -1 when only LT
     	//may need to make rotation*-1
         //gyroAngle may need to not be 0
         masterDrive.mecanumDrive_Cartesian(x,y,rotation,0);
