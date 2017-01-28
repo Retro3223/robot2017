@@ -105,13 +105,14 @@ returns degrees from north, clockwise, -1 if not pressed.
      */
    public void teleopPeriodic() {
     	//switching
-      //* SHOOTER TESTER
+      /* SHOOTER TESTER
       double speed = SmartDashboard.getNumber("DB/Slider 0", 0.0);
       shoot_motor.set(speed);
       //*/
       
-      /* ACTUAL CODE
-      SmartDashboard.putString("DB/String 0", "My 21 Char TestString");
+      //* ACTUAL CODE
+      double speed = SmartDashboard.getNumber("DB/Slider 0", 0.0);
+      SmartDashboard.putString("DB/String 0", "Speed:"+speed);
       if(rumbleCount==0)
       {
          pilots[(currPilot+1) % 2].setRumble(GenericHID.RumbleType.kLeftRumble,0);
@@ -154,7 +155,7 @@ returns degrees from north, clockwise, -1 if not pressed.
         //shooting
       if(pilots[currPilot].getRawButton(5))
       {
-         shoot_motor.set(1);
+         shoot_motor.set(speed);
       }
       if(pilots[currPilot].getRawButton(6))
       {
