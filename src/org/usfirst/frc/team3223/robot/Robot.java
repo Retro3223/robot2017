@@ -44,6 +44,7 @@ public class Robot extends IterativeRobot implements ITableListener{
 
    */
    private double motorSpeed = 0;
+   boolean dPad = false;
    private static final int F_L_PORT = 7, F_R_PORT = 9, B_L_PORT = 6, B_R_PORT = 8, SHOOT_PORT = 4, ROPE_PORT = 5;
    private Joystick[] pilots = new Joystick[2];
    private int currPilot = 0;
@@ -113,6 +114,9 @@ returns degrees from north, clockwise, -1 if not pressed.
       //* ACTUAL CODE
       double speed = SmartDashboard.getNumber("DB/Slider 0", 0.0);
       SmartDashboard.putString("DB/String 0", "Speed:"+speed);
+      dPad = SmartDashboard.getBoolean("DB/Button 0", false);
+      SmartDashboard.putBoolean("DB/Button 1", dPad);
+      
       if(rumbleCount==0)
       {
          pilots[(currPilot+1) % 2].setRumble(GenericHID.RumbleType.kLeftRumble,0);
@@ -135,7 +139,7 @@ returns degrees from north, clockwise, -1 if not pressed.
       double x = 0;
       double y = 0;
       double rotation = 0;
-      if(getPOV(0)==-1)
+      if(!dPad)
       {
       	//moving
          x = pilots[currPilot].getRawAxis(0);//x of l stick
@@ -152,6 +156,17 @@ returns degrees from north, clockwise, -1 if not pressed.
         //gyroAngle may need to not be 0
       masterDrive.mecanumDrive_Cartesian(x,y,rotation,0);
         
+      if(!dPad)
+      {
+         if(pilots[currPilot].getPOV(0)==0)
+         {
+            speed+=.025;
+         }
+         if(pilots[currPilot].getPOV(0)==180)
+         {
+            speed-=.025;
+         }
+      }
         //shooting
       if(pilots[currPilot].getRawButton(5))
       {
