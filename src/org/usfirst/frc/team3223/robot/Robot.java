@@ -13,7 +13,6 @@ import edu.wpi.first.wpilibj.SpeedController;
 import edu.wpi.first.wpilibj.Talon;
 import edu.wpi.first.wpilibj.RobotDrive;
 import edu.wpi.first.wpilibj.GenericHID;
-import edu.wpi.first.wpilibj.GenericHID.RumbleType;
 import edu.wpi.first.wpilibj.command.Command;
 import edu.wpi.first.wpilibj.command.Scheduler;
 import edu.wpi.first.wpilibj.livewindow.LiveWindow;
@@ -42,6 +41,11 @@ public class Robot extends IterativeRobot implements ITableListener{
    private static final int F_L_PORT = 7, F_R_PORT = 9, B_L_PORT = 6, B_R_PORT = 8, SHOOT_PORT = 4, ROPE_PORT = 5;
    private SpeedController fore_left_motor, fore_right_motor, back_left_motor, back_right_motor, shoot_motor, rope_motor;
 
+   private int bounds = 3;
+   private double bump = 0.3;
+   private double factor = .5;
+   private boolean seesHighGoal = false;
+   
    private VisionState visionState;
     
    private RobotDrive masterDrive;
@@ -108,19 +112,22 @@ public class Robot extends IterativeRobot implements ITableListener{
       if(pilots[currPilot].getRawButton(1))
       {
          mode = 0;
-         SmatDashboard.putString("DB/String 3","Mode:"+mode);
+         SmartDashboard.putString("DB/String 3","Mode:"+mode);
       
       }
       if(pilots[currPilot].getRawButton(2))
       {
          mode = 1;
-         SmatDashboard.putString("DB/String 3","Mode:"+mode);
+         SmartDashboard.putString("DB/String 3","Mode:"+mode);
       }
       if(pilots[currPilot].getRawButton(3))
       {
          mode = 2;
-         SmatDashboard.putString("DB/String 3","Mode:"+mode);
+         SmartDashboard.putString("DB/String 3","Mode:"+mode);
       }
+      
+      seesHighGoal = visionState.seesHighGoal();
+      SmartDashboard.putString("DB/String 4", "TP:"+seesHighGoal);
    }
    
    private void swap(){
@@ -153,7 +160,7 @@ public class Robot extends IterativeRobot implements ITableListener{
       bump = SmartDashboard.getNumber("DB/Slider 1",bump);
       factor = SmartDashboard.getNumber("DB/Slider 2",factor);
          
-      if (seesTape) {
+      if (seesHighGoal) {
          double pixels = visionState.getxOffsetHighGoal();
          if (pixels < bounds*-1 || pixels > bounds) {
             rotationalValue = ((pixels / 160) * factor);//Adjustable
@@ -172,8 +179,7 @@ public class Robot extends IterativeRobot implements ITableListener{
             SmartDashboard.putString("DB/String 1", "PX="+visionState.getxOffsetHighGoal());
          }
          else {
-            leftMotor.set(0);
-            rightMotor.set(0);
+            driveRobot(0,0,0);
             mode = 0;
             	//perform high goal
             	//return control to teleop
@@ -182,8 +188,7 @@ public class Robot extends IterativeRobot implements ITableListener{
       }
       else
       {
-         leftMotor.set(0);
-         rightMotor.set(0);
+         driveRobot(0,0,0);
          mode=0;
       }
        	//leftMotor.set(sensorReadingsThread.getRotationValue()); //set to rotationValue
@@ -196,18 +201,48 @@ public class Robot extends IterativeRobot implements ITableListener{
       boolean seesLift = visionState.seesLift();
       double xOffset = visionState.getxOffsetLift();//mm
       double zOffset = visionState.getzOffsetLift();//mm
-      double psiAngle = visionState.psiLift();//rad
-      double thetaAngle = visionState.thetaLift();//rad
+      double psiAngle = Math.toDegrees(visionState.getPsiLift());//rad -> Degree
+      //double thetaAngle = Math.toDegrees(visionState.getThetaLift());//rad -> Degree
+      
+      SmartDashboard.putString("DB/String 1", "xOff:"+xOffset);
+      SmartDashboard.putString("DB/String 2", "psi:"+psiAngle);
+      SmartDashboard.putString("DB/String 9", "zOff:"+zOffset);
+      
+      
+      double angleBounds = Double.parseDouble(SmartDashboard.getString("DB/String 5","10"));
+      double angleFactor = Double.parseDouble(SmartDashboard.getString("DB/String 6",".3"));
+      
+      double transBounds = Double.parseDouble(SmartDashboard.getString("DB/String 7","100"));
+      double transFactor = Double.parseDouble(SmartDashboard.getString("DB/String 8",".5"));
+      
+      double rotVal = 0;
+      double transVal = 0;
       
       if(seesLift)
       {
-         if(zOffest>50)
+         if(psiAngle>angleBounds||psiAngle<-1*angleBounds)
          {
-         
+        	 rotVal = psiAngle/90*angleFactor;
+         }
+         if(xOffset>transBounds||transBounds<-100)
+         {
+        	 transVal = xOffset/300*transFactor;
+         }
+         if(rotVal == 0 && transVal == 0)
+         {
+        	 if(zOffset>100)
+        	 {
+        		 transVal = zOffset/500*transFactor;
+        		 driveRobot(0,transVal,0);
+        	 }
+        	 else
+        	 {
+        		 mode = 0;
+        	 }
          }
          else
          {
-            
+        	 driveRobot(transVal,0,rotVal);
          }
       }
    }
@@ -265,7 +300,8 @@ public class Robot extends IterativeRobot implements ITableListener{
 	 */
    private void log() {
         //wrist.log();
-        
+   }
+   public void valueChanged(ITable source, String key, Object value, boolean isNew) {
    }
    /*
    Mappings:
@@ -289,16 +325,16 @@ public class Robot extends IterativeRobot implements ITableListener{
    
    Strings:
    0: Speed(Shoot)
-   1: PX(High)
-   2: RV(High)
+   1: PX(High) || xOffset(Lift)
+   2: RV(High) || psiAngle(Lift)
    3: Mode
-   4:
+   4: seesHighGoal(High)
    
-   5:
-   6:
-   7:
-   8:
-   9:
+   5:angleBounds (Lift)
+   6:angleFactor(Lift)
+   7:transBounds(Lift)
+   8:transFactor(Lift)
+   9:zOffset(Lift)
    
    Sliders:
    0: Bounds(High)
