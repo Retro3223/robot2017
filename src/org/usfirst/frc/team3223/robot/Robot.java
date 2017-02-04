@@ -32,38 +32,18 @@ import edu.wpi.first.wpilibj.networktables.NetworkTable;
 public class Robot extends IterativeRobot implements ITableListener{
    Command autonomousCommand;
    NetworkTable networkTable;
-   /*
-    SmartDashboard.putString("DB/String 0", "My 21 Char TestString");
-    String dashData = SmartDashboard.getString("DB/String 0", "myDefaultData");
    
-    SmartDashboard.putBoolean("DB/Button 0", true);
-    (default value of false): boolean buttonValue = SmartDashboard.getBoolean("DB/Button 0", false);
-
-    SmartDashboard.putNumber("DB/Slider 0", 2.58);
-    (default value of 0.0): double dashData = SmartDashboard.getNumber("DB/Slider 0", 0.0);
-
-   */
-   private double motorSpeed = 0;
+   private int mode=0;//0=human,1=findHigh,2=findLift
    boolean dPad = false;
-   private static final int F_L_PORT = 7, F_R_PORT = 9, B_L_PORT = 6, B_R_PORT = 8, SHOOT_PORT = 4, ROPE_PORT = 5;
    private Joystick[] pilots = new Joystick[2];
    private int currPilot = 0;
    private int rumbleCount;
-    /*buttons: 1 a, 2 b, 3 x, 4 y, 5 lb, 6 rb, 7 back, 8 start, 9 l3, 10 r3
-     * public boolean getRawButton(int button)
-    Axis indexes:
-0- LeftX
-1 - LeftY
-2 - Left Trigger (0-1)
-3 - Right Trigger (0-1)
-4 - RightX
-5 - RightY
-public double getRawAxis(int axis)
-
-public int getPOV(int pov) - for d-pad
-returns degrees from north, clockwise, -1 if not pressed.
-    */
+   
+   private static final int F_L_PORT = 7, F_R_PORT = 9, B_L_PORT = 6, B_R_PORT = 8, SHOOT_PORT = 4, ROPE_PORT = 5;
    private SpeedController fore_left_motor, fore_right_motor, back_left_motor, back_right_motor, shoot_motor, rope_motor;
+
+   private VisionState visionState;
+    
    private RobotDrive masterDrive;
     /**
      * This function is run when the robot is first started up and should be
@@ -89,14 +69,15 @@ returns degrees from north, clockwise, -1 if not pressed.
       
       networkTable = NetworkTable.getTable("SmartDashboard");
       networkTable.addTableListener(this);
+      
+      visionState = new VisionState();
         // instantiate the command used for the autonomous perio
    
         // Show what command your subsystem is running on the SmartDashboard
         //SmartDashboard.putData(drivetrain);
         
    }
-
-  
+   
    public void teleopInit() {
     	
    }
@@ -105,18 +86,44 @@ returns degrees from north, clockwise, -1 if not pressed.
      * This function is called periodically during operator control
      */
    public void teleopPeriodic() {
-    	//switching
-      /* SHOOTER TESTER
-      double speed = SmartDashboard.getNumber("DB/Slider 0", 0.0);
-      shoot_motor.set(speed);
-      //*/
+      getInput();
+      switch(mode)
+      {
+         case 0:
+            swap();
+            driveHuman();
+            shoot();
+            break;
+         case 1:
+            findHighGoal();
+            break;
+         case 2:
+            findLift();
+            break;
+      }   
+   }
+
+   private void getInput()
+   {
+      if(pilots[currPilot].getRawButton(1))
+      {
+         mode = 0;
+         SmatDashboard.putString("DB/String 3","Mode:"+mode);
       
-      //* ACTUAL CODE
-      double speed = SmartDashboard.getNumber("DB/Slider 0", 0.0);
-      SmartDashboard.putString("DB/String 0", "Speed:"+speed);
-      dPad = SmartDashboard.getBoolean("DB/Button 0", false);
-      SmartDashboard.putBoolean("DB/Button 1", dPad);
-      
+      }
+      if(pilots[currPilot].getRawButton(2))
+      {
+         mode = 1;
+         SmatDashboard.putString("DB/String 3","Mode:"+mode);
+      }
+      if(pilots[currPilot].getRawButton(3))
+      {
+         mode = 2;
+         SmatDashboard.putString("DB/String 3","Mode:"+mode);
+      }
+   }
+   
+   private void swap(){
       if(rumbleCount==0)
       {
          pilots[(currPilot+1) % 2].setRumble(GenericHID.RumbleType.kLeftRumble,0);
@@ -136,6 +143,78 @@ returns degrees from north, clockwise, -1 if not pressed.
       {
          rumbleCount--;
       }
+   }
+   
+   private void findHighGoal()
+   {
+      double rotationalValue;
+         
+      bounds = (int)SmartDashboard.getNumber("DB/Slider 0",bounds);
+      bump = SmartDashboard.getNumber("DB/Slider 1",bump);
+      factor = SmartDashboard.getNumber("DB/Slider 2",factor);
+         
+      if (seesTape) {
+         double pixels = visionState.getxOffsetHighGoal();
+         if (pixels < bounds*-1 || pixels > bounds) {
+            rotationalValue = ((pixels / 160) * factor);//Adjustable
+            if(rotationalValue>0)
+            {
+               rotationalValue+=bump;//get over hump
+            }
+            else
+            {
+               rotationalValue-=bump;
+            }
+               
+            driveRobot(0,0,rotationalValue);
+               	
+            SmartDashboard.putString("DB/String 2", "RV="+rotationalValue);
+            SmartDashboard.putString("DB/String 1", "PX="+visionState.getxOffsetHighGoal());
+         }
+         else {
+            leftMotor.set(0);
+            rightMotor.set(0);
+            mode = 0;
+            	//perform high goal
+            	//return control to teleop
+         }
+         	//possibly sleep here for a couple ms if needed later
+      }
+      else
+      {
+         leftMotor.set(0);
+         rightMotor.set(0);
+         mode=0;
+      }
+       	//leftMotor.set(sensorReadingsThread.getRotationValue()); //set to rotationValue
+       	//rightMotor.set((sensorReadingsThread.getRotationValue()) * -1); //set to inverse of rotationValue
+   
+   }
+   
+   private void findLift()
+   {
+      boolean seesLift = visionState.seesLift();
+      double xOffset = visionState.getxOffsetLift();//mm
+      double zOffset = visionState.getzOffsetLift();//mm
+      double psiAngle = visionState.psiLift();//rad
+      double thetaAngle = visionState.thetaLift();//rad
+      
+      if(seesLift)
+      {
+         if(zOffest>50)
+         {
+         
+         }
+         else
+         {
+            
+         }
+      }
+   }
+   
+   private void driveHuman(){
+      dPad = SmartDashboard.getBoolean("DB/Button 0", false);
+   
       double x = 0;
       double y = 0;
       double rotation = 0;
@@ -148,26 +227,23 @@ returns degrees from north, clockwise, -1 if not pressed.
       }
       else
       {
-         x = Math.cos(pilots[0].getPOV(0)*Math.PI/180);
-         y = Math.sin(pilots[0].getPOV(0)*Math.PI/180);
+         x = Math.cos(pilots[currPilot].getPOV(0)*Math.PI/180);
+         y = Math.sin(pilots[currPilot].getPOV(0)*Math.PI/180);
       }
          // ^should make 1 when only RT, -1 when only LT
     	//may need to make rotation*-1
         //gyroAngle may need to not be 0
       masterDrive.mecanumDrive_Cartesian(x,y,rotation,0);
-        
-      if(!dPad)
-      {
-         if(pilots[currPilot].getPOV(0)==0)
-         {
-            speed+=.025;
-         }
-         if(pilots[currPilot].getPOV(0)==180)
-         {
-            speed-=.025;
-         }
-      }
-        //shooting
+   }
+    
+   private void driveRobot(double x,double y,double rotation){
+      masterDrive.mecanumDrive_Cartesian(x,y,rotation,0);
+   }
+   
+   private void shoot(){
+      double speed = SmartDashboard.getNumber("DB/Slider 3", 0.0);
+      SmartDashboard.putString("DB/String 0", "Speed:"+speed);
+      
       if(pilots[currPilot].getRawButton(5))
       {
          shoot_motor.set(speed);
@@ -176,19 +252,12 @@ returns degrees from north, clockwise, -1 if not pressed.
       {
          shoot_motor.set(0);
       }
-      //*/
    }
-    
     /**
      * This function is called periodically during test mode
      */
    public void testPeriodic() {
-    	
-   }
-   @Override
-    public void valueChanged(ITable table, String name, Object value, boolean isNew) {
-      if(name.equals("motorSpeed"))
-         motorSpeed= (double) value;
+      
    }
 
 	/**
@@ -198,4 +267,74 @@ returns degrees from north, clockwise, -1 if not pressed.
         //wrist.log();
         
    }
+   /*
+   Mappings:
+   A: mode=0
+   B: mode=1
+   X: mode=2
+   Y: Swap Pilots
+   RB: Start Shooter
+   LB: Stop Shooter
+   SEL:
+   STA:
+   R3:
+   L3:
+   
+   RT: Rot Right
+   LT: Rot Left
+   RS: 
+   LS: x-z movement
+   
+   DPAD: x-z movement
+   
+   Strings:
+   0: Speed(Shoot)
+   1: PX(High)
+   2: RV(High)
+   3: Mode
+   4:
+   
+   5:
+   6:
+   7:
+   8:
+   9:
+   
+   Sliders:
+   0: Bounds(High)
+   1: Bump(High)
+   2: Factor(High)
+   3: Speed(Shoot)
+   
+   Buttons:
+   0: dPad(Drive)
+   1:
+   2:
+   3:
+   
+   buttons: 1 a, 2 b, 3 x, 4 y, 5 lb, 6 rb, 7 back, 8 start, 9 l3, 10 r3
+   public boolean getRawButton(int button)
+   Axis indexes:
+0- LeftX
+1 - LeftY
+2 - Left Trigger (0-1)
+3 - Right Trigger (0-1)
+4 - RightX
+5 - RightY
+   public double getRawAxis(int axis)
+
+   public int getPOV(int pov) - for d-pad
+      returns degrees from north, clockwise, -1 if not pressed.
+   
+    SmartDashboard.putString("DB/String 0", "My 21 Char TestString");
+    String dashData = SmartDashboard.getString("DB/String 0", "myDefaultData");
+   
+    SmartDashboard.putBoolean("DB/Button 0", true);
+    (default value of false): boolean buttonValue = SmartDashboard.getBoolean("DB/Button 0", false);
+
+    SmartDashboard.putNumber("DB/Slider 0", 2.58);
+    (default value of 0.0): double dashData = SmartDashboard.getNumber("DB/Slider 0", 0.0);
+
+      
+   */
 }
