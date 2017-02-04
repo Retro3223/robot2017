@@ -208,13 +208,16 @@ public class Robot extends IterativeRobot implements ITableListener{
       SmartDashboard.putString("DB/String 2", "psi:"+psiAngle);
       SmartDashboard.putString("DB/String 9", "zOff:"+zOffset);
       
-      
+      try
+      {
       double angleBounds = Double.parseDouble(SmartDashboard.getString("DB/String 5","10"));
       double angleFactor = Double.parseDouble(SmartDashboard.getString("DB/String 6",".3"));
       
       double transBounds = Double.parseDouble(SmartDashboard.getString("DB/String 7","100"));
       double transFactor = Double.parseDouble(SmartDashboard.getString("DB/String 8",".5"));
-      
+      }
+      catch(Exception e)
+      {}
       double rotVal = 0;
       double transVal = 0;
       
