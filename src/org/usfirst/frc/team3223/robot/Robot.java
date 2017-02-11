@@ -45,6 +45,7 @@ public class Robot extends IterativeRobot implements ITableListener{
    private double bump = 0.3;
    private double factor = .5;
    private boolean seesHighGoal = false;
+   private boolean seesLift = false;
    
    private VisionState visionState;
     
@@ -128,6 +129,8 @@ public class Robot extends IterativeRobot implements ITableListener{
       
       seesHighGoal = visionState.seesHighGoal();
       SmartDashboard.putString("DB/String 4", "TP:"+seesHighGoal);
+      seesLift = visionState.seesLift();
+      SmartDashboard.putBoolean("DB/Button 3", seesLift);
    }
    
    private void swap(){
@@ -155,13 +158,13 @@ public class Robot extends IterativeRobot implements ITableListener{
    private void findHighGoal()
    {
       double rotationalValue;
-         
+      
       bounds = (int)SmartDashboard.getNumber("DB/Slider 0",bounds);
       bump = SmartDashboard.getNumber("DB/Slider 1",bump);
       factor = SmartDashboard.getNumber("DB/Slider 2",factor);
          
       if (seesHighGoal) {
-         double pixels = visionState.getxOffsetHighGoal();
+         double pixels = visionState.getxPixelOffsetHighGoal();
          if (pixels < bounds*-1 || pixels > bounds) {
             rotationalValue = ((pixels / 160) * factor);//Adjustable
             if(rotationalValue>0)
@@ -176,7 +179,7 @@ public class Robot extends IterativeRobot implements ITableListener{
             driveRobot(0,0,rotationalValue);
                	
             SmartDashboard.putString("DB/String 2", "RV="+rotationalValue);
-            SmartDashboard.putString("DB/String 1", "PX="+visionState.getxOffsetHighGoal());
+            SmartDashboard.putString("DB/String 1", "PX="+visionState.getxPixelOffsetHighGoal());
          }
          else {
             driveRobot(0,0,0);
@@ -198,7 +201,8 @@ public class Robot extends IterativeRobot implements ITableListener{
    
    private void findLift()
    {
-      boolean seesLift = visionState.seesLift();
+	  if(seesLift)
+	  {
       double xOffset = visionState.getxOffsetLift();//mm
       double zOffset = visionState.getzOffsetLift();//mm
       double psiAngle = Math.toDegrees(visionState.getPsiLift());//rad -> Degree
@@ -252,6 +256,7 @@ public class Robot extends IterativeRobot implements ITableListener{
         	 driveRobot(transVal,0,rotVal);
          }
       }
+	  }
    }
    
    private void driveHuman(){
@@ -275,11 +280,11 @@ public class Robot extends IterativeRobot implements ITableListener{
          // ^should make 1 when only RT, -1 when only LT
     	//may need to make rotation*-1
         //gyroAngle may need to not be 0
-      masterDrive.mecanumDrive_Cartesian(x,y,rotation,0);
+      masterDrive.mecanumDrive_Cartesian(x/2,y/2,(rotation*-1)/2,0);
    }
     
    private void driveRobot(double x,double y,double rotation){
-      masterDrive.mecanumDrive_Cartesian(x,y,rotation,0);
+      masterDrive.mecanumDrive_Cartesian(x,y,rotation*-1,0);
    }
    
    private void shoot(){
@@ -353,7 +358,7 @@ public class Robot extends IterativeRobot implements ITableListener{
    0: dPad(Drive)
    1:
    2:
-   3:
+   3: seesLift(Lift)
    
    buttons: 1 a, 2 b, 3 x, 4 y, 5 lb, 6 rb, 7 back, 8 start, 9 l3, 10 r3
    public boolean getRawButton(int button)
