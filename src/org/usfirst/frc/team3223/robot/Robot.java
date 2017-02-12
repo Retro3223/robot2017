@@ -9,9 +9,13 @@ package org.usfirst.frc.team3223.robot;
 
 import edu.wpi.first.wpilibj.IterativeRobot;
 import edu.wpi.first.wpilibj.Joystick;
+import edu.wpi.first.wpilibj.PIDSourceType;
 import edu.wpi.first.wpilibj.SpeedController;
 import edu.wpi.first.wpilibj.Talon;
+import edu.wpi.first.wpilibj.TalonSRX;
 import edu.wpi.first.wpilibj.RobotDrive;
+import edu.wpi.first.wpilibj.CounterBase.EncodingType;
+import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.GenericHID;
 import edu.wpi.first.wpilibj.command.Command;
 import edu.wpi.first.wpilibj.command.Scheduler;
@@ -46,9 +50,13 @@ public class Robot extends IterativeRobot implements ITableListener{
    private double factor = .5;
    private boolean seesHighGoal = false;
    
+   private Encoder encoder;
+   
    private VisionState visionState;
+   private VelocityRegulator velocityRegulator;
     
    private RobotDrive masterDrive;
+   private RecorderContext recorderContext;
     /**
      * This function is run when the robot is first started up and should be
      * used for any initialization code.
@@ -57,11 +65,22 @@ public class Robot extends IterativeRobot implements ITableListener{
         // Initialize all subsystems
       pilots[0] = new Joystick(0);//0 is joystick import port on driver panel
       pilots[1] = new Joystick(1);
+      
+      recorderContext = new RecorderContext("piddle");
+      recorderContext.add("encoder Rate", () -> encoder.pidGet());
+      recorderContext.add("pidError", () -> velocityRegulator.pController.getError());
+      recorderContext.add("pidSetpoint", () -> velocityRegulator.pController.getSetpoint());
+      recorderContext.add("flMotor", () -> fore_left_motor.get());
         
-      fore_left_motor = new Talon(F_L_PORT);
-      fore_right_motor = new Talon(F_R_PORT);
-      back_left_motor = new Talon(B_L_PORT);
-      back_right_motor = new Talon(B_R_PORT);
+      fore_left_motor = new TalonSRX(F_L_PORT);
+      fore_right_motor = new TalonSRX(F_R_PORT);
+      back_left_motor = new TalonSRX(B_L_PORT);
+      back_right_motor = new TalonSRX(B_R_PORT);
+      encoder = new Encoder(0, 1, false, Encoder.EncodingType.k4X);
+      encoder.setPIDSourceType(PIDSourceType.kRate);
+      velocityRegulator = new VelocityRegulator(fore_left_motor, encoder);
+      velocityRegulator.disable();
+      
    	
       fore_right_motor.setInverted(true);//for whatever reason, right side motors spin wrong way.
       back_right_motor.setInverted(true);//therefore, invert the motors in code.
@@ -90,22 +109,42 @@ public class Robot extends IterativeRobot implements ITableListener{
      * This function is called periodically during operator control
      */
    public void teleopPeriodic() {
-      getInput();
-      switch(mode)
-      {
-         case 0:
-            swap();
-            driveHuman();
-            shoot();
-            break;
-         case 1:
-            findHighGoal();
-            break;
-         case 2:
-            findLift();
-            break;
-      }   
+	   recorderContext.tick();  
+	   
+	   
+	   encoderTestTick();
    }
+   
+   public void encoderTestTick() {
+	   if(pilots[currPilot].getRawButton(1) && !last_pressed) {
+		   toggled = !toggled;
+		   if(toggled) {
+			   velocityRegulator.enable();
+		   }else{
+			   velocityRegulator.disable();
+		   }
+	   }
+	   last_pressed = pilots[currPilot].getRawButton(1);
+	   if(toggled) {
+		   double x = pilots[currPilot].getRawAxis(1);
+		   if(Math.abs(x) < 0.2) {
+			   x = 0;
+		   }
+		   velocityRegulator.setVelocity(x);
+		   
+	   }else{
+		   fore_left_motor.set(0f);
+	   }
+	   networkTable.putNumber("pid error",  velocityRegulator.pController.getError());
+
+	   networkTable.putNumber("pid setpoint",  velocityRegulator.pController.getSetpoint());
+	   networkTable.putNumber("velocity expected", velocityRegulator.getVelocity());
+	   networkTable.putNumber("encoder rate", velocityRegulator.encoder.getRate());
+	   networkTable.putBoolean("toggled", toggled);
+   }
+   
+   boolean toggled = false;
+   boolean last_pressed = false;
 
    private void getInput()
    {
