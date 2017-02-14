@@ -12,6 +12,7 @@ import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.SpeedController;
 import edu.wpi.first.wpilibj.Talon;
 import edu.wpi.first.wpilibj.RobotDrive;
+import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.GenericHID;
 import edu.wpi.first.wpilibj.command.Command;
 import edu.wpi.first.wpilibj.command.Scheduler;
@@ -40,6 +41,7 @@ public class Robot extends IterativeRobot implements ITableListener{
    
    private static final int F_L_PORT = 7, F_R_PORT = 9, B_L_PORT = 6, B_R_PORT = 8, SHOOT_PORT = 4, ROPE_PORT = 5;
    private SpeedController fore_left_motor, fore_right_motor, back_left_motor, back_right_motor, shoot_motor, rope_motor;
+   private Encoder encoder;
 
    private int bounds = 3;
    private double bump = 0.3;
@@ -76,7 +78,8 @@ public class Robot extends IterativeRobot implements ITableListener{
       networkTable.addTableListener(this);
       
       visionState = new VisionState();
-        // instantiate the command used for the autonomous perio
+      this.encoder=new Encoder(0, 1, false, Encoder.EncodingType.k4X);
+        // instantiate the command used for the autonomous period
    
         // Show what command your subsystem is running on the SmartDashboard
         //SmartDashboard.putData(drivetrain);
@@ -105,7 +108,15 @@ public class Robot extends IterativeRobot implements ITableListener{
          case 2:
             findLift();
             break;
-      }   
+      }
+      
+      SmartDashboard.putString("DB/String 5","Raw Count:"+encoder.getRaw());
+      SmartDashboard.putString("DB/String 6", "Count:" + encoder.get());
+      SmartDashboard.putString("DB/String 7", "Rate:" + encoder.getRate());
+      networkTable.putNumber("Raw Count", encoder.getRaw());
+      networkTable.putNumber("Count", encoder.get());
+      networkTable.putNumber("Rate", encoder.getRate());
+      
    }
 
    private void getInput()
@@ -270,12 +281,26 @@ public class Robot extends IterativeRobot implements ITableListener{
       	//moving
          x = pilots[currPilot].getRawAxis(0);//x of l stick
          y = pilots[currPilot].getRawAxis(1);//y of l stick
+         if(Math.abs(x)<=.1)
+        	 x=0;
+         if(Math.abs(y)<=.1) 
+        	 y=0;
          rotation = pilots[currPilot].getRawAxis(3) - pilots[currPilot].getRawAxis(2); //triggers: right - left to turn
+         if(Math.abs(rotation)<=.1)
+        	 rotation=0;
       }
       else
       {
-         x = Math.cos(pilots[currPilot].getPOV(0)*Math.PI/180);
-         y = Math.sin(pilots[currPilot].getPOV(0)*Math.PI/180);
+    	 if(pilots[currPilot].getPOV(0)==-1)
+    	 {
+    		 x = 0;
+    		 y = 0;
+    	 }
+    	 else
+    	 {
+    		 x = Math.sin(pilots[currPilot].getPOV(0)*Math.PI/180)/2;
+    		 y = Math.cos(pilots[currPilot].getPOV(0)*Math.PI/180)/2;
+    	 }
       }
          // ^should make 1 when only RT, -1 when only LT
     	//may need to make rotation*-1
@@ -343,9 +368,9 @@ public class Robot extends IterativeRobot implements ITableListener{
    4: seesHighGoal(High)
    
    5:angleBounds (Lift)
-   6:angleFactor(Lift)
-   7:transBounds(Lift)
-   8:transFactor(Lift)
+   6:angleFactor(Lift)||encoder.getRaw()
+   7:transBounds(Lift)||encoder.get()
+   8:transFactor(Lift)||encoder.getRate()
    9:zOffset(Lift)
    
    Sliders:
