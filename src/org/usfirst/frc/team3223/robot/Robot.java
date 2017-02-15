@@ -11,7 +11,12 @@ import edu.wpi.first.wpilibj.IterativeRobot;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.SpeedController;
 import edu.wpi.first.wpilibj.Talon;
+import edu.wpi.first.wpilibj.TalonSRX;
 import edu.wpi.first.wpilibj.RobotDrive;
+import edu.wpi.first.wpilibj.SPI;
+
+import com.kauailabs.navx.frc.AHRS;
+
 import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.GenericHID;
 import edu.wpi.first.wpilibj.command.Command;
@@ -32,6 +37,7 @@ import edu.wpi.first.wpilibj.networktables.NetworkTable;
 public class Robot extends IterativeRobot implements ITableListener{
    Command autonomousCommand;
    NetworkTable networkTable;
+   AHRS ahrs;
    
    private int mode=0;//0=human,1=findHigh,2=findLift
    boolean dPad = false;
@@ -48,9 +54,14 @@ public class Robot extends IterativeRobot implements ITableListener{
    private double factor = .5;
    private boolean seesHighGoal = false;
    private boolean seesLift = false;
+   private double outputRotValue;
+   private double outputTransValue;
+   double angleBounds = 0;
+   double angleFactor = 0;
+   double errored = 0;
    
    private VisionState visionState;
-    
+    private RecorderContext recorderContext;
    private RobotDrive masterDrive;
     /**
      * This function is run when the robot is first started up and should be
@@ -60,11 +71,24 @@ public class Robot extends IterativeRobot implements ITableListener{
         // Initialize all subsystems
       pilots[0] = new Joystick(0);//0 is joystick import port on driver panel
       pilots[1] = new Joystick(1);
+      ahrs = new AHRS(SPI.Port.kMXP);
+      recorderContext = new RecorderContext("lift");
+      recorderContext.add("seesLift", () -> seesLift ? 1 : 0);
+      recorderContext.add("mode", () -> mode);
+      recorderContext.add("rotVal", () -> outputRotValue);
+      recorderContext.add("transVal", () -> outputTransValue);
+      recorderContext.add("xOffset", () -> visionState.getxOffsetLift());
+      recorderContext.add("zOffset", () -> visionState.getzOffsetLift());
+      recorderContext.add("theta", () -> visionState.getThetaLift());
+      recorderContext.add("psi", () -> visionState.getPsiLift());
+      recorderContext.add("angleBounds", () -> angleBounds);
+      recorderContext.add("angleFactor", () -> angleFactor);
+      recorderContext.add("errored", () -> errored);
         
-      fore_left_motor = new Talon(F_L_PORT);
-      fore_right_motor = new Talon(F_R_PORT);
-      back_left_motor = new Talon(B_L_PORT);
-      back_right_motor = new Talon(B_R_PORT);
+      fore_left_motor = new TalonSRX(F_L_PORT);
+      fore_right_motor = new TalonSRX(F_R_PORT);
+      back_left_motor = new TalonSRX(B_L_PORT);
+      back_right_motor = new TalonSRX(B_R_PORT);
    	
       fore_right_motor.setInverted(true);//for whatever reason, right side motors spin wrong way.
       back_right_motor.setInverted(true);//therefore, invert the motors in code.
@@ -108,14 +132,18 @@ public class Robot extends IterativeRobot implements ITableListener{
          case 2:
             findLift();
             break;
+         case 3:
+        	goLift();
+        	break;
       }
       
-      SmartDashboard.putString("DB/String 5","Raw Count:"+encoder.getRaw());
-      SmartDashboard.putString("DB/String 6", "Count:" + encoder.get());
-      SmartDashboard.putString("DB/String 7", "Rate:" + encoder.getRate());
+      //SmartDashboard.putString("DB/String 5","Raw Count:"+encoder.getRaw());
+      //SmartDashboard.putString("DB/String 6", "Count:" + encoder.get());
+      //SmartDashboard.putString("DB/String 7", "Rate:" + encoder.getRate());
       networkTable.putNumber("Raw Count", encoder.getRaw());
       networkTable.putNumber("Count", encoder.get());
       networkTable.putNumber("Rate", encoder.getRate());
+      recorderContext.tick();
       
    }
 
@@ -124,20 +152,16 @@ public class Robot extends IterativeRobot implements ITableListener{
       if(pilots[currPilot].getRawButton(1))
       {
          mode = 0;
-         SmartDashboard.putString("DB/String 3","Mode:"+mode);
-      
       }
       if(pilots[currPilot].getRawButton(2))
       {
          mode = 1;
-         SmartDashboard.putString("DB/String 3","Mode:"+mode);
       }
       if(pilots[currPilot].getRawButton(3))
       {
          mode = 2;
-         SmartDashboard.putString("DB/String 3","Mode:"+mode);
       }
-      
+      SmartDashboard.putString("DB/String 3","Mode:"+mode);
       seesHighGoal = visionState.seesHighGoal();
       SmartDashboard.putString("DB/String 4", "TP:"+seesHighGoal);
       seesLift = visionState.seesLift();
@@ -212,70 +236,102 @@ public class Robot extends IterativeRobot implements ITableListener{
    
    private void findLift()
    {
-	  if(seesLift)
-	  {
       double xOffset = visionState.getxOffsetLift();//mm
-      double zOffset = visionState.getzOffsetLift();//mm
       double psiAngle = Math.toDegrees(visionState.getPsiLift());//rad -> Degree
       //double thetaAngle = Math.toDegrees(visionState.getThetaLift());//rad -> Degree
       
       SmartDashboard.putString("DB/String 1", "xOff:"+xOffset);
       SmartDashboard.putString("DB/String 2", "psi:"+psiAngle);
-      SmartDashboard.putString("DB/String 9", "zOff:"+zOffset);
-      double angleBounds = 0;
-      double angleFactor = 0;
+      
+      double angleBump = 0;
+      angleBounds = 0;
+      angleFactor = 0;
       
       double transBounds = 0;
+      double transBump = 0;
       double transFactor = 0;
       try
       {
-      angleBounds = Double.parseDouble(SmartDashboard.getString("DB/String 5","10"));
-      angleFactor = Double.parseDouble(SmartDashboard.getString("DB/String 6",".3"));
-      
-      transBounds = Double.parseDouble(SmartDashboard.getString("DB/String 7","100"));
-      transFactor = Double.parseDouble(SmartDashboard.getString("DB/String 8",".5"));
-      }
+	      angleBounds = Double.parseDouble(SmartDashboard.getString("DB/String 5","10"));
+	      angleBump = Double.parseDouble(SmartDashboard.getString("DB/String 6",".1"));
+	      angleFactor = Double.parseDouble(SmartDashboard.getString("DB/String 7",".4"));
+	      
+	      transBounds = SmartDashboard.getNumber("DB/Slider 0",10);
+	      transBump = SmartDashboard.getNumber("DB/Slider 1",.4);
+	      transFactor = SmartDashboard.getNumber("DB/Slider 2", .1);
+	  }
       catch(Exception e)
-      {}
+      {
+    	  errored = 1;
+      }
       double rotVal = 0;
       double transVal = 0;
+      outputRotValue = rotVal;
       
-      if(seesLift)
-      {
-         if(psiAngle>angleBounds||psiAngle<-1*angleBounds)
-         {
-        	 rotVal = psiAngle/90*angleFactor;
-         }
-         if(xOffset>transBounds||transBounds<-100)
-         {
-        	 transVal = xOffset/300*transFactor;
-         }
-         if(rotVal == 0 && transVal == 0)
-         {
-        	 if(zOffset>100)
-        	 {
-        		 transVal = zOffset/500*transFactor;
-        		 driveRobot(0,transVal,0);
-        	 }
-        	 else
-        	 {
-        		 mode = 0;
-        	 }
-         }
-         else
-         {
-        	 driveRobot(transVal,0,rotVal);
-         }
-      }
-	  }
+      	if(seesLift)
+      	{
+    	  	if(psiAngle>angleBounds||psiAngle<-1*angleBounds)
+         	{
+        	 	rotVal = psiAngle/90*angleFactor;
+        	 	if(rotVal>0)
+        	 		rotVal+=angleBump;
+        	 	else
+        	 		rotVal-=angleBump;
+        	 	outputRotValue = rotVal;
+         	}
+         	if(xOffset>transBounds||transBounds<-100)
+         	{
+        	 	transVal = xOffset/600*transFactor;
+        	 	if(transVal>0)
+        	 		transVal+=transBump;
+        	 	else
+        	 		transVal-=transBump;
+        	 	outputTransValue = transVal;
+         	}
+         	SmartDashboard.putString("DB/String 8", ""+rotVal);
+         	SmartDashboard.putNumber("DB/Slider 3", transVal);
+         	if(rotVal == 0 && transVal == 0)
+         	{
+        	 	mode=3;
+         	}
+         	else
+         	{
+        	 	driveRobot(transVal,0,rotVal);
+         	}
+      	}
    }
-   
+   private void goLift()
+   {
+	      double zOffset = visionState.getzOffsetLift();//mm
+	      double transBounds = SmartDashboard.getNumber("DB/Slider 0",10);
+	      double transBump = SmartDashboard.getNumber("DB/Slider 1",.4);
+	      double transFactor = SmartDashboard.getNumber("DB/Slider 2", .1);
+	      double transVal=0;
+	      SmartDashboard.putString("DB/String 9", "zOff:"+zOffset);
+
+	      
+	   if(zOffset>700)
+	 	{
+		 	transVal = zOffset/1500*transFactor + transBump;
+	 	}
+	 	else
+	 	{
+		 	mode = 0;
+	 	}
+	   driveRobot(0,transVal,0);
+   }
    private void driveHuman(){
       dPad = SmartDashboard.getBoolean("DB/Button 0", false);
    
       double x = 0;
       double y = 0;
       double rotation = 0;
+      if(pilots[currPilot].getRawButton(8))
+      {
+    	  y=.5;
+      }
+      else
+      {
       if(!dPad)
       {
       	//moving
@@ -302,10 +358,12 @@ public class Robot extends IterativeRobot implements ITableListener{
     		 y = Math.cos(pilots[currPilot].getPOV(0)*Math.PI/180)/2;
     	 }
       }
+      }
          // ^should make 1 when only RT, -1 when only LT
     	//may need to make rotation*-1
         //gyroAngle may need to not be 0
-      masterDrive.mecanumDrive_Cartesian(x/2,y/2,(rotation*-1)/2,0);
+      double angle = 0; //ahrs.getAngle();
+      masterDrive.mecanumDrive_Cartesian(x/2,y/2,(rotation)/2, angle);
    }
     
    private void driveRobot(double x,double y,double rotation){
@@ -368,16 +426,16 @@ public class Robot extends IterativeRobot implements ITableListener{
    4: seesHighGoal(High)
    
    5:angleBounds (Lift)
-   6:angleFactor(Lift)||encoder.getRaw()
-   7:transBounds(Lift)||encoder.get()
-   8:transFactor(Lift)||encoder.getRate()
+   6:angleBump(Lift)||encoder.getRaw()
+   7:angleFactor(Lift)||encoder.get()
+   8:angleVal(Lift)||encoder.getRate()
    9:zOffset(Lift)
    
    Sliders:
-   0: Bounds(High)
-   1: Bump(High)
-   2: Factor(High)
-   3: Speed(Shoot)
+   0: Bounds(High)||transBounds(Lift)
+   1: Bump(High)||transBumb(Lift)
+   2: Factor(High)||Factor(Lift)
+   3: Speed(Shoot)||transVal(Lift)
    
    Buttons:
    0: dPad(Drive)
