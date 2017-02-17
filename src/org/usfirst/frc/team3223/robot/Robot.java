@@ -42,6 +42,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 	NetworkTable networkTable;
 	SensorManager sensorManager;
 	TurningStateMachine turningStateMachine;
+	JoystickManager joystickManager;
 
 	private DriveState mode = DriveState.HumanDrive;
 	private AutonomousMode autoMode;
@@ -52,6 +53,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 	private double shooterSpeed = 1;
 
 	private static final int F_L_PORT = 7, F_R_PORT = 9, B_L_PORT = 6, B_R_PORT = 8, SHOOT_PORT = 4, ROPE_PORT = 5, INTAKE_PORT = 3;
+
 	private SpeedController fore_left_motor, fore_right_motor, back_left_motor, back_right_motor, shoot_motor, rope_motor, intake_motor;
 	private Encoder encoder;
 
@@ -116,10 +118,11 @@ public class Robot extends IterativeRobot implements ITableListener {
 		shoot_motor = new Talon(SHOOT_PORT);
 		rope_motor = new Talon(ROPE_PORT);
 		intake_motor = new Talon(INTAKE_PORT);
-		
+
 		networkTable = NetworkTable.getTable("SmartDashboard");
 		networkTable.addTableListener(this);
 
+		joystickManager = new JoystickManager(()-> activeJoystick());
 		visionState = new VisionState();
 		sensorManager = new SensorManager();
 		turningStateMachine = new TurningStateMachine(visionState, sensorManager, (Double voltage) -> {
@@ -160,8 +163,8 @@ public class Robot extends IterativeRobot implements ITableListener {
 				swapActiveJoystick();
 			driveHuman();
 			shoot();
-			climb();
 			intake();
+			climb();
 			break;
 		case FindHighGoal:
 			findHighGoal();
@@ -176,6 +179,9 @@ public class Robot extends IterativeRobot implements ITableListener {
 			turn();
 			break;
 		}
+		
+		joystickManager.tick();
+		
 
 		// SmartDashboard.putString("DB/String 5","Raw
 		// Count:"+encoder.getRaw());
@@ -204,7 +210,27 @@ public class Robot extends IterativeRobot implements ITableListener {
 		seesLift = visionState.seesLift();
 		SmartDashboard.putBoolean("DB/Button 3", seesLift);
 	}
-
+	
+	private void intake(){
+		if(joystickManager.isIntakeToggled()){
+			if(joystickManager.isInverseIntakeToggled()){
+				intake_motor.set(-0.5);
+			}else{
+				intake_motor.set(0.5);
+			} 
+		}else{
+			intake_motor.set(0);
+		}
+		
+	}
+	
+	private void climb(){
+		if(joystickManager.isClimberButtonDepressed()){
+			rope_motor.set(1);
+		}
+	}
+	
+	
 	private Joystick activeJoystick() {
 		return pilots[currPilot];
 	}
