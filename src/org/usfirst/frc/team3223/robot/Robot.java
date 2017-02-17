@@ -211,26 +211,6 @@ public class Robot extends IterativeRobot implements ITableListener {
 		SmartDashboard.putBoolean("DB/Button 3", seesLift);
 	}
 	
-	private void intake(){
-		if(joystickManager.isIntakeToggled()){
-			if(joystickManager.isInverseIntakeToggled()){
-				intake_motor.set(-0.5);
-			}else{
-				intake_motor.set(0.5);
-			} 
-		}else{
-			intake_motor.set(0);
-		}
-		
-	}
-	
-	private void climb(){
-		if(joystickManager.isClimberButtonDepressed()){
-			rope_motor.set(1);
-		}
-	}
-	
-	
 	private Joystick activeJoystick() {
 		return pilots[currPilot];
 	}
@@ -380,12 +360,23 @@ public class Robot extends IterativeRobot implements ITableListener {
 		}
 	}
 
-	private void climb() {
-
-	}
-
-	private void intake() {
+	private void intake(){
+		if(joystickManager.isIntakeToggled()){
+			if(joystickManager.isInverseIntakeToggled()){
+				intake_motor.set(-0.5);
+			}else{
+				intake_motor.set(0.5);
+			} 
+		}else{
+			intake_motor.set(0);
+		}
 		
+	}
+	
+	private void climb(){
+		if(joystickManager.isClimberButtonDepressed()){
+			rope_motor.set(1);
+		}
 	}
 	
 	private void driveHuman() {
