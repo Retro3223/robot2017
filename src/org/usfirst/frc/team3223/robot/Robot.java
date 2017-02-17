@@ -156,9 +156,12 @@ public class Robot extends IterativeRobot implements ITableListener {
 		getInput();
 		switch (mode) {
 		case HumanDrive:
-			swapActiveJoystick();
+			if (pilots[(currPilot + 1) % 2].getRawButton(4))
+				swapActiveJoystick();
 			driveHuman();
 			shoot();
+			climb();
+			intake();
 			break;
 		case FindHighGoal:
 			findHighGoal();
@@ -212,8 +215,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 			pilots[(currPilot + 1) % 2].setRumble(GenericHID.RumbleType.kRightRumble, 0);
 		}
 		if (rumbleCount < 0) {
-			if (pilots[(currPilot + 1) % 2].getRawButton(4))// if not-pilot push
-															// y
+			if (pilots[(currPilot + 1) % 2].getRawButton(4))// if not-pilot push 'y'
 			{
 				pilots[currPilot].setRumble(GenericHID.RumbleType.kLeftRumble, 1);
 				pilots[currPilot].setRumble(GenericHID.RumbleType.kRightRumble, 1);
@@ -340,49 +342,53 @@ public class Robot extends IterativeRobot implements ITableListener {
 			mode = DriveState.HumanDrive;
 		}
 	}
+	
+	private void shoot() {
+		shooterSpeed = SmartDashboard.getNumber("DB/Slider 3", 0.0);
 
+		if (activeJoystick().getPOV(0) == 0) {
+			shoot_motor.set(shooterSpeed);
+		}
+		if (activeJoystick().getPOV(0) == 180) {
+			shoot_motor.set(0);
+		}
+	}
+
+	private void climb() {
+
+	}
+
+	private void intake() {
+		
+	}
+	
 	private void driveHuman() {
 		double x = 0;
 		double y = 0;
 		double rotation = 0;
-		if (activeJoystick().getRawButton(8)) {
-			y = .5;
-		} else {
-			if (activeJoystick().getRawButton(5) == activeJoystick().getRawButton(6)) {
-				// moving
-				x = activeJoystick().getRawAxis(0);// x of l stick
-				y = activeJoystick().getRawAxis(1);// y of l stick
-				if (Math.abs(x) <= .1)
-					x = 0;
-				if (Math.abs(y) <= .1)
-					y = 0;
-			} else {
-				if (activeJoystick().getRawButton(5))
-					x = -1;
-				else
-					x = 1;
-			}
-			rotation = activeJoystick().getRawAxis(3) - activeJoystick().getRawAxis(2); // triggers:(right-left)turn
-			if (Math.abs(rotation) <= .1)
-				rotation = 0;
-		}
+		
+		x = activeJoystick().getRawAxis(0);// x of l stick
+		y = activeJoystick().getRawAxis(1);// y of l stick
+		if (Math.abs(x) <= .1)
+			x = 0;
+		if (Math.abs(y) <= .1)
+			y = 0;
+		
+		if (activeJoystick().getRawButton(5))
+			x = -1;
+		if(activeJoystick().getRawButton(6))
+			x = 1;
+		
+		rotation = activeJoystick().getRawAxis(3) - activeJoystick().getRawAxis(2); // triggers:(right-left)turn
+		if (Math.abs(rotation) <= .1)
+			rotation = 0;
+		
 		double angle = 0;
 		masterDrive.mecanumDrive_Cartesian(x / 2, y / 2, (rotation) / 2, angle);
 	}
 
 	private void driveRobot(double x, double y, double rotation) {
 		masterDrive.mecanumDrive_Cartesian(x, y, rotation * -1, 0);
-	}
-
-	private void shoot() {
-		shooterSpeed = SmartDashboard.getNumber("DB/Slider 3", 0.0);
-
-		if (activeJoystick().getPOV(0)==0) {
-			shoot_motor.set(shooterSpeed);
-		}
-		if (activeJoystick().getPOV(0)==180) {
-			shoot_motor.set(0);
-		}
 	}
 
 	public void turn() {
@@ -393,6 +399,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 		}
 
 		if (turningStateMachine.isDone()) {
+			
 			mode = DriveState.HumanDrive;
 		} else {
 			turningStateMachine.run();
@@ -462,9 +469,9 @@ public class Robot extends IterativeRobot implements ITableListener {
 	 * Y:Swap Pilots 
 	 * RB:strafe-Right 
 	 * LB:strafe-Left 
-	 * SEL: 
+	 * SEL:
 	 * STA:straight back
-	 * R3: 
+	 * R3:climber
 	 * L3:
 	 * 
 	 * Axis:
