@@ -50,21 +50,33 @@ public class Robot extends IterativeRobot implements ITableListener {
 	private Joystick[] pilots = new Joystick[2];
 	private int currPilot = 0;
 	private int rumbleCount;
+	private double shooterSpeed = 1;
 
 	private static final int F_L_PORT = 7, F_R_PORT = 9, B_L_PORT = 6, B_R_PORT = 8, SHOOT_PORT = 4, ROPE_PORT = 5, INTAKE_PORT = 3;
-	private SpeedController fore_left_motor, fore_right_motor, back_left_motor, back_right_motor, shoot_motor,
-			rope_motor, intake_motor;
+
+	private SpeedController fore_left_motor, fore_right_motor, back_left_motor, back_right_motor, shoot_motor, rope_motor, intake_motor;
 	private Encoder encoder;
 
-	private int bounds = 3;
-	private double bump = 0.3;
-	private double factor = .5;
+	private static final int HIGH_MAX_XOFFSET = 160;
+	private int highBounds = 3;
+	private double highBump = 0.3;
+	private double highFactor = .5;
 	private boolean seesHighGoal = false;
+	
+	private static final int LIFT_MAX_ANGLE = 90;
+	private double angleBounds = 5;
+	private double angleBump = .1;
+	private double angleFactor = .21;
+	private static final int LIFT_MAX_XOFFSET = 600;
+	private double transBounds = 20;
+	private double transBump = .15;
+	private double transFactor = .36;
+	private static final int LIFT_MAX_ZOFFSET = 1500;
 	private boolean seesLift = false;
+	
 	private double outputRotValue;
 	private double outputTransValue;
-	double angleBounds = 0;
-	double angleFactor = 0;
+	
 	double errored = 0;
 	private boolean isTurning = false;
 
@@ -98,10 +110,8 @@ public class Robot extends IterativeRobot implements ITableListener {
 		back_left_motor = new TalonSRX(B_L_PORT);
 		back_right_motor = new TalonSRX(B_R_PORT);
 
-		fore_right_motor.setInverted(true);// for whatever reason, right side
-											// motors spin wrong way.
-		back_right_motor.setInverted(true);// therefore, invert the motors in
-											// code.
+		fore_right_motor.setInverted(true);//switch from clockwise to front-back
+		back_right_motor.setInverted(true);
 
 		masterDrive = new RobotDrive(fore_left_motor, back_left_motor, fore_right_motor, back_right_motor);
 
@@ -127,7 +137,15 @@ public class Robot extends IterativeRobot implements ITableListener {
 
 		// Show what command your subsystem is running on the SmartDashboard
 		// SmartDashboard.putData(drivetrain);
-
+		
+		SmartDashboard.putString("DB/String 5", ""+angleBounds);
+		SmartDashboard.putString("DB/String 6", ""+angleBump);
+		SmartDashboard.putString("DB/String 7", ""+angleFactor);
+		
+		SmartDashboard.putNumber("DB/Slider 0", transBounds);
+		SmartDashboard.putNumber("DB/Slider 1", transBump);
+		SmartDashboard.putNumber("DB/Slider 2", transFactor);
+		SmartDashboard.putNumber("DB/Slider 3", shooterSpeed);
 	}
 
 	public void teleopInit() {
@@ -141,7 +159,8 @@ public class Robot extends IterativeRobot implements ITableListener {
 		getInput();
 		switch (mode) {
 		case HumanDrive:
-			swapActiveJoystick();
+			if (pilots[(currPilot + 1) % 2].getRawButton(4))
+				swapActiveJoystick();
 			driveHuman();
 			shoot();
 			intake();
@@ -215,15 +234,14 @@ public class Robot extends IterativeRobot implements ITableListener {
 	private Joystick activeJoystick() {
 		return pilots[currPilot];
 	}
-	
+
 	private void swapActiveJoystick() {
 		if (rumbleCount == 0) {
 			pilots[(currPilot + 1) % 2].setRumble(GenericHID.RumbleType.kLeftRumble, 0);
 			pilots[(currPilot + 1) % 2].setRumble(GenericHID.RumbleType.kRightRumble, 0);
 		}
 		if (rumbleCount < 0) {
-			if (pilots[(currPilot + 1) % 2].getRawButton(4))// if not-pilot push
-															// y
+			if (pilots[(currPilot + 1) % 2].getRawButton(4))// if not-pilot push 'y'
 			{
 				pilots[currPilot].setRumble(GenericHID.RumbleType.kLeftRumble, 1);
 				pilots[currPilot].setRumble(GenericHID.RumbleType.kRightRumble, 1);
@@ -238,18 +256,18 @@ public class Robot extends IterativeRobot implements ITableListener {
 	private void findHighGoal() {
 		double rotationalValue;
 
-		bounds = (int) SmartDashboard.getNumber("DB/Slider 0", bounds);
-		bump = SmartDashboard.getNumber("DB/Slider 1", bump);
-		factor = SmartDashboard.getNumber("DB/Slider 2", factor);
+		highBounds = (int) SmartDashboard.getNumber("DB/Slider 0", highBounds);
+		highBump = SmartDashboard.getNumber("DB/Slider 1", highBump);
+		highFactor = SmartDashboard.getNumber("DB/Slider 2", highFactor);
 
 		if (seesHighGoal) {
 			double pixels = visionState.getxPixelOffsetHighGoal();
-			if (pixels < bounds * -1 || pixels > bounds) {
-				rotationalValue = ((pixels / 160) * factor);// Adjustable
+			if (pixels < highBounds * -1 || pixels > highBounds) {
+				rotationalValue = ((pixels / HIGH_MAX_XOFFSET) * highFactor);// Adjustable
 				if (rotationalValue > 0) {
-					rotationalValue += bump;// get over hump
+					rotationalValue += highBump;// get over hump
 				} else {
-					rotationalValue -= bump;
+					rotationalValue -= highBump;
 				}
 
 				driveRobot(0, 0, rotationalValue);
@@ -262,36 +280,21 @@ public class Robot extends IterativeRobot implements ITableListener {
 				// perform high goal
 				// return control to teleop
 			}
-			// possibly sleep here for a couple ms if needed later
 		} else {
 			driveRobot(0, 0, 0);
 			mode = DriveState.HumanDrive;
 		}
-		// leftMotor.set(sensorReadingsThread.getRotationValue()); //set to
-		// rotationValue
-		// rightMotor.set((sensorReadingsThread.getRotationValue()) * -1); //set
-		// to inverse of rotationValue
-
 	}
 
 	private void findLift() {
-		double xOffset = visionState.getxOffsetLift();// mm
-		double psiAngle = Math.toDegrees(visionState.getPsiLift());// rad ->
-																	// Degree
-		// double thetaAngle = Math.toDegrees(visionState.getThetaLift());//rad
-		// -> Degree
+		
+		if (seesLift) {
+			double xOffset = visionState.getxOffsetLift();// mm
+			double psiAngle = Math.toDegrees(visionState.getPsiLift());// rad ->
+																		// Degree
+			SmartDashboard.putString("DB/String 1", "xOff:" + xOffset);
+			SmartDashboard.putString("DB/String 2", "psi:" + psiAngle);
 
-		SmartDashboard.putString("DB/String 1", "xOff:" + xOffset);
-		SmartDashboard.putString("DB/String 2", "psi:" + psiAngle);
-
-		double angleBump = 0;
-		angleBounds = 0;
-		angleFactor = 0;
-
-		double transBounds = 0;
-		double transBump = 0;
-		double transFactor = 0;
-		try {
 			angleBounds = Double.parseDouble(SmartDashboard.getString("DB/String 5", "10"));
 			angleBump = Double.parseDouble(SmartDashboard.getString("DB/String 6", ".1"));
 			angleFactor = Double.parseDouble(SmartDashboard.getString("DB/String 7", ".4"));
@@ -299,94 +302,113 @@ public class Robot extends IterativeRobot implements ITableListener {
 			transBounds = SmartDashboard.getNumber("DB/Slider 0", 10);
 			transBump = SmartDashboard.getNumber("DB/Slider 1", .4);
 			transFactor = SmartDashboard.getNumber("DB/Slider 2", .1);
-		} catch (Exception e) {
-			errored = 1;
-		}
-		double rotVal = 0;
-		double transVal = 0;
-		outputRotValue = rotVal;
 
-		if (seesLift) {
-			if (psiAngle > angleBounds || psiAngle < -1 * angleBounds) {
-				rotVal = psiAngle / 90 * angleFactor;
-				if (rotVal > 0)
-					rotVal += angleBump;
-				else
-					rotVal -= angleBump;
-				outputRotValue = rotVal;
+			double rotVal = 0;
+			double transVal = 0;
+
+			if (seesLift) {
+				if (psiAngle > angleBounds || psiAngle < -1 * angleBounds)//within bounds
+				{
+					rotVal = psiAngle / LIFT_MAX_ANGLE * angleFactor;
+					if (rotVal > 0)
+						rotVal += angleBump;
+					else
+						rotVal -= angleBump;
+					outputRotValue = rotVal;
+				}
+				if (xOffset > transBounds || transBounds < -1*xOffset)//within bounds
+				{
+					transVal = xOffset / LIFT_MAX_XOFFSET * transFactor;
+					if (transVal > 0)
+						transVal += transBump;
+					else
+						transVal -= transBump;
+					outputTransValue = transVal;
+				}
+			
+				SmartDashboard.putString("DB/String 8", "" + rotVal);
+				SmartDashboard.putNumber("DB/Slider 3", transVal);
+				
+				if (rotVal == 0 && transVal == 0)//both happy - lined up
+				{
+					mode = DriveState.FindLiftContinue;
+				} 
+				else {
+					driveRobot(transVal, 0, rotVal);
+				}
 			}
-			if (xOffset > transBounds || transBounds < -100) {
-				transVal = xOffset / 600 * transFactor;
-				if (transVal > 0)
-					transVal += transBump;
-				else
-					transVal -= transBump;
-				outputTransValue = transVal;
-			}
-			SmartDashboard.putString("DB/String 8", "" + rotVal);
-			SmartDashboard.putNumber("DB/Slider 3", transVal);
-			if (rotVal == 0 && transVal == 0) {
-				mode = DriveState.FindLiftContinue;
-			} else {
-				driveRobot(transVal, 0, rotVal);
-			}
+		} 
+		else {
+			driveRobot(0, 0, 0);
+			mode = DriveState.HumanDrive;
 		}
 	}
 
 	private void goLift() {
-		double zOffset = visionState.getzOffsetLift();// mm
-		double transBounds = SmartDashboard.getNumber("DB/Slider 0", 10);
-		double transBump = SmartDashboard.getNumber("DB/Slider 1", .4);
-		double transFactor = SmartDashboard.getNumber("DB/Slider 2", .1);
-		double transVal = 0;
-		SmartDashboard.putString("DB/String 9", "zOff:" + zOffset);
+		
+		if (seesLift) {
+			double zOffset = visionState.getzOffsetLift();// mm
+			double transVal = 0;
+			
+			transBounds = SmartDashboard.getNumber("DB/Slider 0", 10);
+			transBump = SmartDashboard.getNumber("DB/Slider 1", .4);
+			transFactor = SmartDashboard.getNumber("DB/Slider 2", .1);
+			
+			SmartDashboard.putString("DB/String 9", "zOff:" + zOffset);
 
-		if (zOffset > 700) {
-			transVal = zOffset / 1500 * transFactor + transBump;
+			if (zOffset > 700) {
+				transVal = zOffset / LIFT_MAX_ZOFFSET * transFactor + transBump;
+				driveRobot(0, transVal, 0);
+			} else {
+				driveRobot(0,0,0);
+				mode = DriveState.HumanDrive;
+			}
 		} else {
+			driveRobot(0, 0, 0);
 			mode = DriveState.HumanDrive;
 		}
-		driveRobot(0, transVal, 0);
+	}
+	
+	private void shoot() {
+		shooterSpeed = SmartDashboard.getNumber("DB/Slider 3", 0.0);
+
+		if (activeJoystick().getPOV(0) == 0) {
+			shoot_motor.set(shooterSpeed);
+		}
+		if (activeJoystick().getPOV(0) == 180) {
+			shoot_motor.set(0);
+		}
 	}
 
-	private void driveHuman() {
-		dPad = SmartDashboard.getBoolean("DB/Button 0", false);
+	private void climb() {
 
+	}
+
+	private void intake() {
+		
+	}
+	
+	private void driveHuman() {
 		double x = 0;
 		double y = 0;
 		double rotation = 0;
-		if (activeJoystick().getRawButton(8)) {
-			y = .5;
-		} else {
-			if (!dPad) {
-				// moving
-				x = activeJoystick().getRawAxis(0);// x of l stick
-				y = activeJoystick().getRawAxis(1);// y of l stick
-				if (Math.abs(x) <= .1)
-					x = 0;
-				if (Math.abs(y) <= .1)
-					y = 0;
-				rotation = activeJoystick().getRawAxis(3) - activeJoystick().getRawAxis(2); // triggers:
-																								// right
-																								// -
-																								// left
-																								// to
-																								// turn
-				if (Math.abs(rotation) <= .1)
-					rotation = 0;
-			} else {
-				if (activeJoystick().getPOV(0) == -1) {
-					x = 0;
-					y = 0;
-				} else {
-					x = Math.sin(activeJoystick().getPOV(0) * Math.PI / 180) / 2;
-					y = Math.cos(activeJoystick().getPOV(0) * Math.PI / 180) / 2;
-				}
-			}
-		}
-		// ^should make 1 when only RT, -1 when only LT
-		// may need to make rotation*-1
-		// gyroAngle may need to not be 0
+		
+		x = activeJoystick().getRawAxis(0);// x of l stick
+		y = activeJoystick().getRawAxis(1);// y of l stick
+		if (Math.abs(x) <= .1)
+			x = 0;
+		if (Math.abs(y) <= .1)
+			y = 0;
+		
+		if (activeJoystick().getRawButton(5))
+			x = -1;
+		if(activeJoystick().getRawButton(6))
+			x = 1;
+		
+		rotation = activeJoystick().getRawAxis(3) - activeJoystick().getRawAxis(2); // triggers:(right-left)turn
+		if (Math.abs(rotation) <= .1)
+			rotation = 0;
+		
 		double angle = 0;
 		masterDrive.mecanumDrive_Cartesian(x / 2, y / 2, (rotation) / 2, angle);
 	}
@@ -395,32 +417,21 @@ public class Robot extends IterativeRobot implements ITableListener {
 		masterDrive.mecanumDrive_Cartesian(x, y, rotation * -1, 0);
 	}
 
-	private void shoot() {
-		double speed = SmartDashboard.getNumber("DB/Slider 3", 0.0);
-		SmartDashboard.putString("DB/String 0", "Speed:" + speed);
-
-		if (activeJoystick().getRawButton(5)) {
-			shoot_motor.set(speed);
-		}
-		if (activeJoystick().getRawButton(6)) {
-			shoot_motor.set(0);
-		}
-	}
-
 	public void turn() {
-		if(!isTurning) {
+		if (!isTurning) {
 			isTurning = true;
 			turningStateMachine.reset();
 			turningStateMachine.setInputAngle(Math.toRadians(30));
 		}
-		
-		if(turningStateMachine.isDone()) {
+
+		if (turningStateMachine.isDone()) {
+			
 			mode = DriveState.HumanDrive;
-		}else{
+		} else {
 			turningStateMachine.run();
 		}
 	}
-	
+
 	/**
 	 * This function is called periodically during test mode
 	 */
@@ -431,55 +442,115 @@ public class Robot extends IterativeRobot implements ITableListener {
 
 	@Override
 	public void autonomousInit() {
-		autoMode =  AutonomousMode.MiddleGear;
+		autoMode = AutonomousMode.Selecting;
 	}
-	
+
 	@Override
 	public void autonomousPeriodic() {
-		switch(autoMode) {
+		switch (autoMode) {
 		case Selecting:
+			selectGearTarget();
 			break;
 		case MiddleGear:
+			autoMode = AutonomousMode.FindLift;
 			break;
 		case FarGear:
+			approachFarGear();
 			break;
-		case Boiler: 
+		case FindLift:
+			findLift();
+			break;
+		case GoLift:
+			goLift();
+			break;
+		case Boiler:
 			break;
 		}
 	}
-
+	
+	private void selectGearTarget()
+	{
+		if(seesLift)
+		{
+			autoMode = AutonomousMode.MiddleGear;
+		}
+		else
+		{
+			autoMode = AutonomousMode.FarGear;
+		}
+	}
+	
+	private void approachFarGear()
+	{
+		
+	}
+	
 	public void valueChanged(ITable source, String key, Object value, boolean isNew) {
 	}
 	/*
-	 * Mappings: A: mode=0 B: mode=1 X: mode=2 Y: Swap Pilots RB: Start Shooter
-	 * LB: Stop Shooter SEL: STA: R3: L3:
+	 * Buttons: 
+	 * A:mode=0
+	 * B:mode=1 
+	 * X:mode=2 
+	 * Y:Swap Pilots 
+	 * RB:strafe-Right 
+	 * LB:strafe-Left 
+	 * SEL:
+	 * STA:straight back
+	 * R3:climber
+	 * L3:
 	 * 
-	 * RT: Rot Right LT: Rot Left RS: LS: x-z movement
+	 * Axis:
+	 * RT:rotate right 
+	 * LT:rotate left 
+	 * RS: 
+	 * LS:x-z movement
 	 * 
-	 * DPAD: x-z movement
+	 * DPAD:
+	 * UP:shooter on 
+	 * DOWN:shooter off
+	 * LEFT:intake in
+	 * RIGHT:intake out
 	 * 
-	 * Strings: 0: Speed(Shoot) 1: PX(High) || xOffset(Lift) 2: RV(High) ||
-	 * psiAngle(Lift) 3: Mode 4: seesHighGoal(High)
+	 * Strings: 
+	 * 0: 
+	 * 1: PX(High) || xOffset(Lift) 
+	 * 2: RV(High) || psiAngle(Lift) 
+	 * 3: Mode 
+	 * 4: seesHighGoal(High)
 	 * 
-	 * 5:angleBounds (Lift) 6:angleBump(Lift)||encoder.getRaw()
-	 * 7:angleFactor(Lift)||encoder.get() 8:angleVal(Lift)||encoder.getRate()
-	 * 9:zOffset(Lift)
+	 * 5: angleBounds (Lift) 
+	 * 6: angleBump(Lift)||encoder.getRaw()
+	 * 7: angleFactor(Lift)||encoder.get() 
+	 * 8: angleVal(Lift)||encoder.getRate()
+	 * 9: zOffset(Lift)
 	 * 
-	 * Sliders: 0: Bounds(High)||transBounds(Lift) 1:
-	 * Bump(High)||transBumb(Lift) 2: Factor(High)||Factor(Lift) 3:
-	 * Speed(Shoot)||transVal(Lift)
+	 * Sliders: 
+	 * 0: Bounds(High)||transBounds(Lift) 
+	 * 1: Bump(High)||transBumb(Lift) 
+	 * 2: Factor(High)||Factor(Lift) 
+	 * 3: Speed(Shoot)||transVal(Lift)
 	 * 
-	 * Buttons: 0: dPad(Drive) 1: 2: 3: seesLift(Lift)
+	 * Buttons: 
+	 * 0: dPad(Drive) 
+	 * 1: 
+	 * 2: 
+	 * 3: seesLift(Lift)
 	 * 
-	 * buttons: 1 a, 2 b, 3 x, 4 y, 5 lb, 6 rb, 7 back, 8 start, 9 l3, 10 r3
-	 * public boolean getRawButton(int button) Axis indexes: 0- LeftX 1 - LeftY
-	 * 2 - Left Trigger (0-1) 3 - Right Trigger (0-1) 4 - RightX 5 - RightY
+	 * buttons: 
+	 * 1-a, 2-b, 3-x, 4-y, 5-lb, 6-rb, 7-back, 8-start, 9-l3, 10-r3
+	 * 
+	 * public boolean getRawButton(int button) 
+	 * 
+	 * Axis indexes: 
+	 * 0-LeftX, 1-LeftY, 2-Left Trigger (0-1), 3-Right Trigger (0-1), 4-RightX, 5-RightY
+	 * 
 	 * public double getRawAxis(int axis)
 	 * 
-	 * public int getPOV(int pov) - for d-pad returns degrees from north,
-	 * clockwise, -1 if not pressed.
+	 * public int getPOV(int pov) 
+	 *  - for d-pad returns degrees from north, clockwise, -1 if not pressed.
 	 * 
-	 * SmartDashboard.putString("DB/String 0", "My 21 Char TestString"); String
+	 * SmartDashboard.putString("DB/String 0", "My 21 Char TestString");
 	 * dashData = SmartDashboard.getString("DB/String 0", "myDefaultData");
 	 * 
 	 * SmartDashboard.putBoolean("DB/Button 0", true); (default value of false):

@@ -4,5 +4,7 @@ public enum AutonomousMode {
 	Selecting,
 	MiddleGear,
 	FarGear,
+	FindLift,
+	GoLift,
 	Boiler;
 }
