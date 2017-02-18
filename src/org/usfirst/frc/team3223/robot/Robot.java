@@ -42,6 +42,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 	NetworkTable networkTable;
 	SensorManager sensorManager;
 	TurningStateMachine turningStateMachine;
+	TranslationalStateMachine translationalStateMachine;
 	JoystickManager joystickManager;
 
 	private DriveState mode = DriveState.HumanDrive;
@@ -132,6 +133,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 			fore_right_motor.set(-v);
 			back_right_motor.set(-v);
 		});
+		translationalStateMachine = new TranslationalStateMachine(this);
 		this.encoder = new Encoder(0, 1, false, Encoder.EncodingType.k4X);
 		// instantiate the command used for the autonomous period
 
@@ -190,6 +192,14 @@ public class Robot extends IterativeRobot implements ITableListener {
 		networkTable.putNumber("Raw Count", encoder.getRaw());
 		networkTable.putNumber("Count", encoder.get());
 		networkTable.putNumber("Rate", encoder.getRate());
+		networkTable.putBoolean("Left DPAD", joystickManager.isLeftDPAD());
+		networkTable.putBoolean("Right DPAD", joystickManager.isRightDPAD());
+		networkTable.putBoolean("A button", activeJoystick().getRawButton(1));
+		networkTable.putBoolean("B button", activeJoystick().getRawButton(2));
+		networkTable.putBoolean("X button", activeJoystick().getRawButton(3));
+		networkTable.putBoolean("Y button", activeJoystick().getRawButton(4));
+		networkTable.putBoolean("Right Bumper", activeJoystick().getRawButton(6));
+		networkTable.putBoolean("Left Bumper", activeJoystick().getRawButton(5));
 		recorderContext.tick();
 
 	}
@@ -404,7 +414,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 		masterDrive.mecanumDrive_Cartesian(x / 2, y / 2, (rotation) / 2, angle);
 	}
 
-	private void driveRobot(double x, double y, double rotation) {
+	public void driveRobot(double x, double y, double rotation) {
 		masterDrive.mecanumDrive_Cartesian(x, y, rotation * -1, 0);
 	}
 
@@ -440,7 +450,9 @@ public class Robot extends IterativeRobot implements ITableListener {
 	public void autonomousPeriodic() {
 		switch (autoMode) {
 		case Selecting:
-			selectGearTarget();
+			translationalStateMachine.setInputDistance(90);
+			translationalStateMachine.run(); 
+			//selectGearTarget();
 			break;
 		case MiddleGear:
 			autoMode = AutonomousMode.FindLift;

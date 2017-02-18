@@ -11,11 +11,11 @@ public class JoystickManager {
 	private boolean rightDPADIsToggled;
 	private Supplier<Joystick> getActiveJoystick;
 	
-	private boolean isLeftDPAD(){
+	public boolean isLeftDPAD(){
 		return activeJoystick().getPOV(0) == 270;
 	}
 	
-	private boolean isRightDPAD(){
+	public boolean isRightDPAD(){
 		return activeJoystick().getPOV(0) == 90;
 	}
 	

@@ -1,9 +1,9 @@
 package org.usfirst.frc.team3223.robot;
 
 public class RotationalProfiler {
-	double absAccel = 0.01 * 1000; // rad/s^2
+	double absAccel; // rad/s^2
 	double accel;
-	double absVMaxTra = 2.3;// rad/s
+	double absVMaxTra;// rad/s
 	double vMaxTra;
 	boolean isTrapezoid;
 	double initialVelocity;
@@ -183,4 +183,10 @@ public class RotationalProfiler {
 	public boolean isDone(long timeMs) {
 		return timeMs / 1000.00 >= t1 + t2 + t3;
 	}
+	
+	public RotationalProfiler(double maxVel, double accel){
+		this.vMaxTra = maxVel;
+		this.accel = accel;
+	}
 }
+
