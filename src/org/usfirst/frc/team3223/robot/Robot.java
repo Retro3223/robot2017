@@ -84,6 +84,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 	private VisionState visionState;
 	private RecorderContext recorderContext;
 	private RobotDrive masterDrive;
+	
 
 	/**
 	 * This function is run when the robot is first started up and should be
@@ -184,7 +185,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 		
 		joystickManager.tick();
 		
-
+		networkTable.putNumber("encoder", encoder.getDistance());
 		// SmartDashboard.putString("DB/String 5","Raw
 		// Count:"+encoder.getRaw());
 		// SmartDashboard.putString("DB/String 6", "Count:" + encoder.get());
@@ -450,9 +451,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 	public void autonomousPeriodic() {
 		switch (autoMode) {
 		case Selecting:
-			translationalStateMachine.setInputDistance(90);
-			translationalStateMachine.run(); 
-			//selectGearTarget();
+			selectGearTarget();
 			break;
 		case MiddleGear:
 			autoMode = AutonomousMode.FindLift;
@@ -471,8 +470,10 @@ public class Robot extends IterativeRobot implements ITableListener {
 		}
 	}
 	
+	//selects either middle lift or far lift
 	private void selectGearTarget()
-	{
+	{	translationalStateMachine.setInputDistance(20);
+		translationalStateMachine.run();
 		if(seesLift)
 		{
 			autoMode = AutonomousMode.MiddleGear;
@@ -483,8 +484,31 @@ public class Robot extends IterativeRobot implements ITableListener {
 		}
 	}
 	
+	//figures out which side we are on, if it cannot find a lift, goes forward and returns control to human
 	private void approachFarGear()
 	{
+		turningStateMachine.reset();
+		turningStateMachine.setInputAngle(30);
+		turningStateMachine.run();
+		if(seesLift){
+			autoMode = AutonomousMode.FindLift;
+		}else{
+			turningStateMachine.reset();
+			turningStateMachine.setInputAngle(-60);
+			turningStateMachine.run();
+			if(seesLift){
+				autoMode = AutonomousMode.FindLift;
+			}else{
+				turningStateMachine.reset();
+				turningStateMachine.setInputAngle(30);
+				turningStateMachine.run();
+				translationalStateMachine.reset();
+				translationalStateMachine.setInputDistance(20);
+				translationalStateMachine.run();
+				driveRobot(0, 0, 0);
+				mode = DriveState.HumanDrive;
+			}
+		}
 		
 	}
 	
