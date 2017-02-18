@@ -20,6 +20,7 @@ import org.usfirst.frc.team3223.enums.DriveState;
 
 import com.kauailabs.navx.frc.AHRS;
 
+import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.GenericHID;
 import edu.wpi.first.wpilibj.command.Command;
@@ -44,6 +45,8 @@ public class Robot extends IterativeRobot implements ITableListener {
 	TurningStateMachine turningStateMachine;
 	TranslationalStateMachine translationalStateMachine;
 	JoystickManager joystickManager;
+	
+	private boolean isAuto;
 
 	private DriveState mode = DriveState.HumanDrive;
 	private AutonomousMode autoMode;
@@ -51,6 +54,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 	private Joystick[] pilots = new Joystick[2];
 	private int currPilot = 0;
 	private int rumbleCount;
+	private int FarGearState;
 	private double shooterSpeed = 1;
 
 	private static final int F_L_PORT = 7, F_R_PORT = 9, B_L_PORT = 6, B_R_PORT = 8, SHOOT_PORT = 4, ROPE_PORT = 5, INTAKE_PORT = 3;
@@ -86,6 +90,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 	private RobotDrive masterDrive;
 	
 
+
 	/**
 	 * This function is run when the robot is first started up and should be
 	 * used for any initialization code.
@@ -106,6 +111,9 @@ public class Robot extends IterativeRobot implements ITableListener {
 		recorderContext.add("angleBounds", () -> angleBounds);
 		recorderContext.add("angleFactor", () -> angleFactor);
 		recorderContext.add("errored", () -> errored);
+		recorderContext.add("auto Mode", () -> autoMode.ordinal());
+		recorderContext.add("FarGearState", () -> FarGearState);
+		
 
 		fore_left_motor = new TalonSRX(F_L_PORT);
 		fore_right_motor = new TalonSRX(F_R_PORT);
@@ -127,6 +135,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 		joystickManager = new JoystickManager(()-> activeJoystick());
 		visionState = new VisionState();
 		sensorManager = new SensorManager();
+		FarGearState = 1;
 		turningStateMachine = new TurningStateMachine(visionState, sensorManager, (Double voltage) -> {
 			double v = voltage.doubleValue();
 			fore_left_motor.set(v);
@@ -152,7 +161,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 	}
 
 	public void teleopInit() {
-
+		isAuto = false;
 	}
 
 	/**
@@ -162,12 +171,15 @@ public class Robot extends IterativeRobot implements ITableListener {
 		getInput();
 		switch (mode) {
 		case HumanDrive:
-			if (pilots[(currPilot + 1) % 2].getRawButton(4))
+			if (activeJoystick().getRawButton(4))
 				swapActiveJoystick();
 			driveHuman();
 			shoot();
 			intake();
 			climb();
+			if(activeJoystick().getRawButton(7)) {
+				mode = DriveState.TurnLikeItsTuesday;
+			}
 			break;
 		case FindHighGoal:
 			findHighGoal();
@@ -184,8 +196,10 @@ public class Robot extends IterativeRobot implements ITableListener {
 		}
 		
 		joystickManager.tick();
+		sensorManager.tick();
 		
 		networkTable.putNumber("encoder", encoder.getDistance());
+
 		// SmartDashboard.putString("DB/String 5","Raw
 		// Count:"+encoder.getRaw());
 		// SmartDashboard.putString("DB/String 6", "Count:" + encoder.get());
@@ -322,7 +336,10 @@ public class Robot extends IterativeRobot implements ITableListener {
 				
 				if (rotVal == 0 && transVal == 0)//both happy - lined up
 				{
-					mode = DriveState.FindLiftContinue;
+					if(isAuto)
+						autoMode = AutonomousMode.GoLift;
+					else
+						mode = DriveState.FindLiftContinue;
 				} 
 				else {
 					driveRobot(transVal, 0, rotVal);
@@ -331,7 +348,8 @@ public class Robot extends IterativeRobot implements ITableListener {
 		} 
 		else {
 			driveRobot(0, 0, 0);
-			mode = DriveState.HumanDrive;
+			if(!isAuto)
+				mode = DriveState.HumanDrive;
 		}
 	}
 
@@ -352,11 +370,15 @@ public class Robot extends IterativeRobot implements ITableListener {
 				driveRobot(0, transVal, 0);
 			} else {
 				driveRobot(0,0,0);
-				mode = DriveState.HumanDrive;
+				if(isAuto)
+					autoMode = AutonomousMode.Finished;
+				else
+					mode = DriveState.HumanDrive;
 			}
 		} else {
 			driveRobot(0, 0, 0);
-			mode = DriveState.HumanDrive;
+			if(!isAuto)
+				mode = DriveState.HumanDrive;
 		}
 	}
 	
@@ -427,7 +449,6 @@ public class Robot extends IterativeRobot implements ITableListener {
 		}
 
 		if (turningStateMachine.isDone()) {
-			
 			mode = DriveState.HumanDrive;
 		} else {
 			turningStateMachine.run();
@@ -444,14 +465,24 @@ public class Robot extends IterativeRobot implements ITableListener {
 
 	@Override
 	public void autonomousInit() {
+		FarGearState = 1;
 		autoMode = AutonomousMode.Selecting;
+		isAuto = true;
 	}
 
 	@Override
 	public void autonomousPeriodic() {
+		SmartDashboard.putString("DB/String 0", "State:" + FarGearState);
+		SmartDashboard.putString("DB/String 1", "Sees Lift:" + seesLift);
+		seesLift = visionState.seesLift();
 		switch (autoMode) {
 		case Selecting:
-			selectGearTarget();
+			translationalStateMachine.setInputDistance(20);
+			translationalStateMachine.run();
+			if(translationalStateMachine.isDone()){
+				translationalStateMachine.reset();
+				selectGearTarget();
+			}
 			break;
 		case MiddleGear:
 			autoMode = AutonomousMode.FindLift;
@@ -467,14 +498,15 @@ public class Robot extends IterativeRobot implements ITableListener {
 			break;
 		case Boiler:
 			break;
+		case Finished:
+			break;
 		}
+		recorderContext.tick();
 	}
 	
 	//selects either middle lift or far lift
 	private void selectGearTarget()
-	{	translationalStateMachine.setInputDistance(20);
-		translationalStateMachine.run();
-		if(seesLift)
+	{		if(seesLift)
 		{
 			autoMode = AutonomousMode.MiddleGear;
 		}
@@ -487,24 +519,55 @@ public class Robot extends IterativeRobot implements ITableListener {
 	//figures out which side we are on, if it cannot find a lift, goes forward and returns control to human
 	private void approachFarGear()
 	{
-		turningStateMachine.reset();
-		turningStateMachine.setInputAngle(30);
-		turningStateMachine.run();
-		if(seesLift){
+		// Turn right 30 degrees
+		if(FarGearState == 1){
+			turningStateMachine.setInputAngle(30);
+			turningStateMachine.run();
+			if(turningStateMachine.isDone()){
+				turningStateMachine.reset();
+				FarGearState = 2;
+			}
+			
+		}
+		// Check to see Lift, if not switch to turn other way
+		if(seesLift&&FarGearState == 2){
 			autoMode = AutonomousMode.FindLift;
-		}else{
-			turningStateMachine.reset();
+		}else if(!seesLift&&FarGearState == 2){
+			FarGearState = 3;
+		}	
+		
+		// turn left 60 degrees
+		if(FarGearState == 3){
 			turningStateMachine.setInputAngle(-60);
 			turningStateMachine.run();
-			if(seesLift){
-				autoMode = AutonomousMode.FindLift;
-			}else{
+			if(turningStateMachine.isDone()){
 				turningStateMachine.reset();
-				turningStateMachine.setInputAngle(30);
-				turningStateMachine.run();
+				FarGearState = 4;
+			}
+		}
+			
+		//Check to see lift, if not cross baseline
+		if(seesLift && FarGearState==4){
+				autoMode = AutonomousMode.FindLift;
+		} else if(!seesLift&&FarGearState == 4){
+			FarGearState = 5;
+		}
+		
+		//Turns robot to face straight ahead
+		if(FarGearState==5){
+			turningStateMachine.setInputAngle(30);
+			turningStateMachine.run();
+			if(turningStateMachine.isDone()){
+				FarGearState = 6;
+			}
+		}
+		
+		//move forward and cross baseline
+		if(FarGearState == 6){
+			translationalStateMachine.setInputDistance(20);
+			translationalStateMachine.run();
+			if(translationalStateMachine.isDone()){
 				translationalStateMachine.reset();
-				translationalStateMachine.setInputDistance(20);
-				translationalStateMachine.run();
 				driveRobot(0, 0, 0);
 				mode = DriveState.HumanDrive;
 			}
