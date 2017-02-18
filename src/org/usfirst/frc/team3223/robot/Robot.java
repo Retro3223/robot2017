@@ -20,6 +20,7 @@ import org.usfirst.frc.team3223.enums.DriveState;
 
 import com.kauailabs.navx.frc.AHRS;
 
+import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.GenericHID;
 import edu.wpi.first.wpilibj.command.Command;
@@ -44,6 +45,8 @@ public class Robot extends IterativeRobot implements ITableListener {
 	TurningStateMachine turningStateMachine;
 	TranslationalStateMachine translationalStateMachine;
 	JoystickManager joystickManager;
+	
+	private boolean isAuto;
 
 	private DriveState mode = DriveState.HumanDrive;
 	private AutonomousMode autoMode;
@@ -84,6 +87,8 @@ public class Robot extends IterativeRobot implements ITableListener {
 	private VisionState visionState;
 	private RecorderContext recorderContext;
 	private RobotDrive masterDrive;
+	
+	DigitalInput limitSwitch;
 
 	/**
 	 * This function is run when the robot is first started up and should be
@@ -105,6 +110,9 @@ public class Robot extends IterativeRobot implements ITableListener {
 		recorderContext.add("angleBounds", () -> angleBounds);
 		recorderContext.add("angleFactor", () -> angleFactor);
 		recorderContext.add("errored", () -> errored);
+		
+		
+		limitSwitch = new DigitalInput(10);
 
 		fore_left_motor = new TalonSRX(F_L_PORT);
 		fore_right_motor = new TalonSRX(F_R_PORT);
@@ -151,7 +159,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 	}
 
 	public void teleopInit() {
-
+		isAuto = false;
 	}
 
 	/**
@@ -161,12 +169,15 @@ public class Robot extends IterativeRobot implements ITableListener {
 		getInput();
 		switch (mode) {
 		case HumanDrive:
-			if (pilots[(currPilot + 1) % 2].getRawButton(4))
+			if (activeJoystick().getRawButton(4))
 				swapActiveJoystick();
 			driveHuman();
 			shoot();
 			intake();
 			climb();
+			if(activeJoystick().getRawButton(7)) {
+				mode = DriveState.TurnLikeItsTuesday;
+			}
 			break;
 		case FindHighGoal:
 			findHighGoal();
@@ -183,8 +194,8 @@ public class Robot extends IterativeRobot implements ITableListener {
 		}
 		
 		joystickManager.tick();
+		sensorManager.tick();
 		
-
 		// SmartDashboard.putString("DB/String 5","Raw
 		// Count:"+encoder.getRaw());
 		// SmartDashboard.putString("DB/String 6", "Count:" + encoder.get());
@@ -321,7 +332,10 @@ public class Robot extends IterativeRobot implements ITableListener {
 				
 				if (rotVal == 0 && transVal == 0)//both happy - lined up
 				{
-					mode = DriveState.FindLiftContinue;
+					if(isAuto)
+						autoMode = AutonomousMode.GoLift;
+					else
+						mode = DriveState.FindLiftContinue;
 				} 
 				else {
 					driveRobot(transVal, 0, rotVal);
@@ -330,7 +344,8 @@ public class Robot extends IterativeRobot implements ITableListener {
 		} 
 		else {
 			driveRobot(0, 0, 0);
-			mode = DriveState.HumanDrive;
+			if(!isAuto)
+				mode = DriveState.HumanDrive;
 		}
 	}
 
@@ -351,11 +366,15 @@ public class Robot extends IterativeRobot implements ITableListener {
 				driveRobot(0, transVal, 0);
 			} else {
 				driveRobot(0,0,0);
-				mode = DriveState.HumanDrive;
+				if(isAuto)
+					autoMode = AutonomousMode.Finished;
+				else
+					mode = DriveState.HumanDrive;
 			}
 		} else {
 			driveRobot(0, 0, 0);
-			mode = DriveState.HumanDrive;
+			if(!isAuto)
+				mode = DriveState.HumanDrive;
 		}
 	}
 	
@@ -426,7 +445,6 @@ public class Robot extends IterativeRobot implements ITableListener {
 		}
 
 		if (turningStateMachine.isDone()) {
-			
 			mode = DriveState.HumanDrive;
 		} else {
 			turningStateMachine.run();
@@ -444,6 +462,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 	@Override
 	public void autonomousInit() {
 		autoMode = AutonomousMode.Selecting;
+		isAuto = true;
 	}
 
 	@Override
@@ -467,6 +486,8 @@ public class Robot extends IterativeRobot implements ITableListener {
 			goLift();
 			break;
 		case Boiler:
+			break;
+		case Finished:
 			break;
 		}
 	}
