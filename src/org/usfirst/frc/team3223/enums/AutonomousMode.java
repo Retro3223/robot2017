@@ -6,5 +6,6 @@ public enum AutonomousMode {
 	FarGear,
 	FindLift,
 	GoLift,
-	Boiler;
+	Boiler,
+	Finished;
 }
