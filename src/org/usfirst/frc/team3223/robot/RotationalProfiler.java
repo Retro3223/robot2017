@@ -185,8 +185,8 @@ public class RotationalProfiler {
 	}
 	
 	public RotationalProfiler(double maxVel, double accel){
-		this.vMaxTra = maxVel;
-		this.accel = accel;
+		this.absVMaxTra = maxVel;
+		this.absAccel = accel;
 	}
 }
 
