@@ -291,6 +291,50 @@ public class Robot extends IterativeRobot implements ITableListener {
 		}
 	}
 
+	private void positionLift() {
+		double x = 0;
+		double y = 0;
+		double rot = 0;
+		
+		if(seesLift) {
+			double xOffset = visionState.getxOffsetLift();
+			double zOffset = visionState.getzOffsetLift();
+			double theta = visionState.getThetaLift();
+			double psi = visionState.getPsiLift();
+			
+			if(zOffset > 2000) {
+				x = clamp(xOffset, 0, 150, 0.2);
+				y = clamp(zOffset, 500, 150, 0.4);
+				rot = clamp(theta, 0, Math.toRadians(10), 0.2);
+			}else{
+				x = clamp(xOffset, 0, 150, 0.2);
+				y = clamp(zOffset, 500, 150, 0.2);
+				rot = clamp(psi, 0, Math.toRadians(10), 0.2);
+			}
+		}
+		
+		masterDrive.mecanumDrive_Cartesian(x, y, rot, 0);
+	}
+	
+	/**
+	 * given one of the measured offsets (x, y, theta, psi), choose the output to give to that component of 
+	 * mechanum drive to bring measured closer to desired, if necessary.
+	 * @param input measured value from vision
+	 * @param desired what we want input to be
+	 * @param range |max acceptable input - min acceptable input|
+	 * @param absOutput output, if there should be any, excluding sign.
+	 * @return
+	 */
+	private double clamp(double input, double desired, double range, double absOutput) {
+		double output = 0;
+		if(desired - 0.5 * range >= input) {
+			output = absOutput;
+		}else if(desired + 0.5 * range <= input) {
+			output = -absOutput;
+		}
+		return output;
+	}
+	
 	private void findLift() {
 		
 		if (seesLift) {
