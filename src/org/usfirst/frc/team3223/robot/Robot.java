@@ -56,7 +56,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 	private int rumbleCount;
 	private double shooterSpeed = 1;
 
-	private static final int F_L_PORT = 7, F_R_PORT = 9, B_L_PORT = 6, B_R_PORT = 8, SHOOT_PORT = 4, ROPE_PORT = 5, INTAKE_PORT = 3;
+	private static final int F_L_PORT = 6, F_R_PORT = 4, B_L_PORT = 0, B_R_PORT = 3, SHOOT_PORT = 2, ROPE_PORT = 1, INTAKE_PORT = 5;
 
 	private SpeedController fore_left_motor, fore_right_motor, back_left_motor, back_right_motor, shoot_motor, rope_motor, intake_motor;
 	private Encoder encoder;
@@ -392,9 +392,9 @@ public class Robot extends IterativeRobot implements ITableListener {
 	private void intake(){
 		if(joystickManager.isIntakeToggled()){
 			if(joystickManager.isInverseIntakeToggled()){
-				intake_motor.set(-0.5);
+				intake_motor.set(-0.8);
 			}else{
-				intake_motor.set(0.5);
+				intake_motor.set(0.8);
 			} 
 		}else{
 			intake_motor.set(0);
