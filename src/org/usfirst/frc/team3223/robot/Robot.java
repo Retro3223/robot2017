@@ -111,7 +111,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 		recorderContext.add("angleBounds", () -> angleBounds);
 		recorderContext.add("angleFactor", () -> angleFactor);
 		recorderContext.add("errored", () -> errored);
-		recorderContext.add("auto Mode", () -> autoMode.ordinal());
+		//recorderContext.add("auto Mode", () -> autoMode.ordinal());
 		recorderContext.add("FarGearState", () -> FarGearState);
 		
 
@@ -472,7 +472,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 
 	@Override
 	public void autonomousPeriodic() {
-		SmartDashboard.putString("DB/String 0", "State:" + FarGearState);
+		/*SmartDashboard.putString("DB/String 0", "State:" + FarGearState);
 		SmartDashboard.putString("DB/String 1", "Sees Lift:" + seesLift);
 		seesLift = visionState.seesLift();
 		switch (autoMode) {
@@ -500,8 +500,11 @@ public class Robot extends IterativeRobot implements ITableListener {
 			break;
 		case Finished:
 			break;
-		}
+		}*/
+	
 		recorderContext.tick();
+		turningStateMachine.setInputAngle(30);
+		turningStateMachine.run();
 	}
 	
 	//selects either middle lift or far lift
