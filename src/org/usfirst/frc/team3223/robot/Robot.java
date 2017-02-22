@@ -58,9 +58,10 @@ public class Robot extends IterativeRobot implements ITableListener {
 	private int currPilot = 0;
 	private int rumbleCount;
 	private int FarGearState;
-	private double shooterSpeed = 1;
+	private double shooterSpeed = .75;
+	private double intakeSpeed = .8;
 
-	private static final int F_L_PORT = 7, F_R_PORT = 9, B_L_PORT = 6, B_R_PORT = 8, SHOOT_PORT = 4, ROPE_PORT = 5, INTAKE_PORT = 3;
+	private static final int F_L_PORT = 6, F_R_PORT = 4, B_L_PORT = 0, B_R_PORT = 3, SHOOT_PORT = 2, ROPE_PORT = 1, INTAKE_PORT = 5;
 
 	private SpeedController fore_left_motor, fore_right_motor, back_left_motor, back_right_motor, shoot_motor, rope_motor, intake_motor;
 	private Encoder encoder;
@@ -200,7 +201,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 			shoot();
 			intake();
 			climb();
-			if(activeJoystick().getRawButton(7)) {
+			if(activeJoystick().getRawButton(10)) {
 				mode = DriveState.TurnLikeItsTuesday;
 			}
 			break;
@@ -238,6 +239,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 		networkTable.putBoolean("Y button", activeJoystick().getRawButton(4));
 		networkTable.putBoolean("Right Bumper", activeJoystick().getRawButton(6));
 		networkTable.putBoolean("Left Bumper", activeJoystick().getRawButton(5));
+
 		networkTable.putBoolean("Sees Lift", visionState.seesLift());
 		networkTable.putNumber("xOffset Lift", visionState.getxOffsetLift());
 		networkTable.putBoolean("Sees High Goal", visionState.seesHighGoal());
@@ -324,6 +326,50 @@ public class Robot extends IterativeRobot implements ITableListener {
 		}
 	}
 
+	private void positionLift() {
+		double x = 0;
+		double y = 0;
+		double rot = 0;
+		
+		if(seesLift) {
+			double xOffset = visionState.getxOffsetLift();
+			double zOffset = visionState.getzOffsetLift();
+			double theta = visionState.getThetaLift();
+			double psi = visionState.getPsiLift();
+			
+			if(zOffset > 2000) {
+				x = clamp(xOffset, 0, 150, 0.2);
+				y = clamp(zOffset, 500, 150, 0.4);
+				rot = clamp(theta, 0, Math.toRadians(10), 0.2);
+			}else{
+				x = clamp(xOffset, 0, 150, 0.2);
+				y = clamp(zOffset, 500, 150, 0.2);
+				rot = clamp(psi, 0, Math.toRadians(10), 0.2);
+			}
+		}
+		
+		masterDrive.mecanumDrive_Cartesian(x, y, rot, 0);
+	}
+	
+	/**
+	 * given one of the measured offsets (x, y, theta, psi), choose the output to give to that component of 
+	 * mechanum drive to bring measured closer to desired, if necessary.
+	 * @param input measured value from vision
+	 * @param desired what we want input to be
+	 * @param range |max acceptable input - min acceptable input|
+	 * @param absOutput output, if there should be any, excluding sign.
+	 * @return
+	 */
+	private double clamp(double input, double desired, double range, double absOutput) {
+		double output = 0;
+		if(desired - 0.5 * range >= input) {
+			output = absOutput;
+		}else if(desired + 0.5 * range <= input) {
+			output = -absOutput;
+		}
+		return output;
+	}
+	
 	private void findLift() {
 		
 		if (seesLift) {
@@ -417,7 +463,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 	}
 	
 	private void shoot() {
-		shooterSpeed = SmartDashboard.getNumber("DB/Slider 3", 0.0);
+		//shooterSpeed = SmartDashboard.getNumber("DB/Slider 3", 0.0);
 
 		if (activeJoystick().getPOV(0) == 0) {
 			shoot_motor.set(shooterSpeed);
@@ -430,9 +476,9 @@ public class Robot extends IterativeRobot implements ITableListener {
 	private void intake(){
 		if(joystickManager.isIntakeToggled()){
 			if(joystickManager.isInverseIntakeToggled()){
-				intake_motor.set(-0.5);
+				intake_motor.set(-1*intakeSpeed);
 			}else{
-				intake_motor.set(0.5);
+				intake_motor.set(intakeSpeed);
 			} 
 		}else{
 			intake_motor.set(0);
@@ -440,9 +486,16 @@ public class Robot extends IterativeRobot implements ITableListener {
 		
 	}
 	
-	private void climb(){
-		if(joystickManager.isClimberButtonDepressed()){
-			rope_motor.set(1);
+	private void 	(){
+		if(activeJoystick().getRawButton(7)){
+			rope_motor.set(-.5);
+		}
+		else
+		{
+			if(activeJoystick().getRawButton(8))
+				rope_motor.set(.5);
+			else
+			rope_motor.set(0);
 		}
 	}
 	
@@ -468,7 +521,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 			rotation = 0;
 		
 		double angle = 0;
-		masterDrive.mecanumDrive_Cartesian(x / 2, y / 2, (rotation) / 2, angle);
+		masterDrive.mecanumDrive_Cartesian(x , y , (rotation) / 1.5, angle);
 	}
 
 	public void driveRobot(double x, double y, double rotation) {
@@ -648,9 +701,9 @@ public class Robot extends IterativeRobot implements ITableListener {
 	 * Y:Swap Pilots 
 	 * RB:strafe-Right 
 	 * LB:strafe-Left 
-	 * SEL:
+	 * SEL:climber
 	 * STA:straight back
-	 * R3:climber
+	 * R3:
 	 * L3:
 	 * 
 	 * Axis:
