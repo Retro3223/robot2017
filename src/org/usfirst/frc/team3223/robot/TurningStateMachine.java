@@ -34,7 +34,7 @@ public class TurningStateMachine {
 	}
 
 	public TurningStateMachine(VisionState visionState, SensorManager sensorManager, Consumer<Double> turnRobot) {
-		profiler = new RotationalProfiler(0.9, 4.0);
+		profiler = new RotationalProfiler(1.3, .01*1000);
 		this.visionState = visionState;
 		this.sensorManager = sensorManager;
 		this.turnRobot = turnRobot;

@@ -1,10 +1,12 @@
 package org.usfirst.frc.team3223.robot;
 
 import edu.wpi.first.wpilibj.networktables.NetworkTable;
+import edu.wpi.first.wpilibj.tables.IRemote;
+import edu.wpi.first.wpilibj.tables.IRemoteConnectionListener;
 import edu.wpi.first.wpilibj.tables.ITable;
 import edu.wpi.first.wpilibj.tables.ITableListener;
 
-public class VisionState implements ITableListener {
+public class VisionState implements ITableListener, IRemoteConnectionListener {
    private boolean seesHighGoal;
    private double xPixelOffsetHighGoal;
    
@@ -12,11 +14,15 @@ public class VisionState implements ITableListener {
    private double xOffsetLift; //in mm
    private double zOffsetLift; //in mm
    private double thetaLift; //in rads - angle between robot dir and lift location
-   private double psiLift; //in rads - angle between robot dir and wall (perbendicular)
+   private double psiLift;//in rads - angle between robot dir and wall (perbendicular)
+   private NetworkTable networkTable;
+   private int countConnected = 0;
+   private int countDisconnected = 0;
 	
    public VisionState() {
-      NetworkTable networkTable = NetworkTable.getTable("SmartDashboard");
-      networkTable.addTableListener(this);
+      networkTable = NetworkTable.getTable("SmartDashboard");
+      networkTable.addTableListener(this, true);
+      networkTable.addConnectionListener(this, true);
    }
 
    @Override
@@ -72,4 +78,20 @@ public class VisionState implements ITableListener {
    public double getThetaLift(){
       return thetaLift;
    }
+
+@Override
+public void connected(IRemote remote) {
+	// TODO Auto-generated method stub
+	countConnected++;
+	networkTable.putString("connected", countConnected + " " + remote.toString());
+	
+}
+
+@Override
+public void disconnected(IRemote remote) {
+	// TODO Auto-generated method stub
+	countDisconnected++;
+	networkTable.putString("disconnected", countDisconnected + " " + remote.toString());
+	
+}
 }
