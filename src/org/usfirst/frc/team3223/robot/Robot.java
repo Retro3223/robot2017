@@ -486,7 +486,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 		
 	}
 	
-	private void 	(){
+	private void climb(){
 		if(activeJoystick().getRawButton(7)){
 			rope_motor.set(-.5);
 		}
