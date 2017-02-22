@@ -55,7 +55,8 @@ public class Robot extends IterativeRobot implements ITableListener {
 	private int currPilot = 0;
 	private int rumbleCount;
 	private int FarGearState;
-	private double shooterSpeed = 1;
+	private double shooterSpeed = .75;
+	private double intakeSpeed = .8;
 
 	private static final int F_L_PORT = 6, F_R_PORT = 4, B_L_PORT = 0, B_R_PORT = 3, SHOOT_PORT = 2, ROPE_PORT = 1, INTAKE_PORT = 5;
 
@@ -177,7 +178,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 			shoot();
 			intake();
 			climb();
-			if(activeJoystick().getRawButton(7)) {
+			if(activeJoystick().getRawButton(10)) {
 				mode = DriveState.TurnLikeItsTuesday;
 			}
 			break;
@@ -215,7 +216,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 		networkTable.putBoolean("Y button", activeJoystick().getRawButton(4));
 		networkTable.putBoolean("Right Bumper", activeJoystick().getRawButton(6));
 		networkTable.putBoolean("Left Bumper", activeJoystick().getRawButton(5));
-		recorderContext.tick();
+		//recorderContext.tick();
 
 	}
 
@@ -427,7 +428,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 	}
 	
 	private void shoot() {
-		shooterSpeed = SmartDashboard.getNumber("DB/Slider 3", 0.0);
+		//shooterSpeed = SmartDashboard.getNumber("DB/Slider 3", 0.0);
 
 		if (activeJoystick().getPOV(0) == 0) {
 			shoot_motor.set(shooterSpeed);
@@ -440,9 +441,9 @@ public class Robot extends IterativeRobot implements ITableListener {
 	private void intake(){
 		if(joystickManager.isIntakeToggled()){
 			if(joystickManager.isInverseIntakeToggled()){
-				intake_motor.set(-0.8);
+				intake_motor.set(-1*intakeSpeed);
 			}else{
-				intake_motor.set(0.8);
+				intake_motor.set(intakeSpeed);
 			} 
 		}else{
 			intake_motor.set(0);
@@ -450,9 +451,16 @@ public class Robot extends IterativeRobot implements ITableListener {
 		
 	}
 	
-	private void climb(){
-		if(joystickManager.isClimberButtonDepressed()){
-			rope_motor.set(1);
+	private void 	(){
+		if(activeJoystick().getRawButton(7)){
+			rope_motor.set(-.5);
+		}
+		else
+		{
+			if(activeJoystick().getRawButton(8))
+				rope_motor.set(.5);
+			else
+			rope_motor.set(0);
 		}
 	}
 	
@@ -478,7 +486,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 			rotation = 0;
 		
 		double angle = 0;
-		masterDrive.mecanumDrive_Cartesian(x / 2, y / 2, (rotation) / 2, angle);
+		masterDrive.mecanumDrive_Cartesian(x , y , (rotation) / 1.5, angle);
 	}
 
 	public void driveRobot(double x, double y, double rotation) {
@@ -629,9 +637,9 @@ public class Robot extends IterativeRobot implements ITableListener {
 	 * Y:Swap Pilots 
 	 * RB:strafe-Right 
 	 * LB:strafe-Left 
-	 * SEL:
+	 * SEL:climber
 	 * STA:straight back
-	 * R3:climber
+	 * R3:
 	 * L3:
 	 * 
 	 * Axis:
