@@ -74,6 +74,10 @@ public class Robot extends IterativeRobot implements ITableListener {
 	private double highBump = 0.3;
 	private double highFactor = .5;
 	private boolean seesHighGoal = false;
+	private static final int HIGH_MAX_ZOFFSET = 0;
+	private int highZBounds = 5;
+	private double highZBump = .15;
+	private double highZFactor = .4;
 	
 	private static final int LIFT_MAX_ANGLE = 90;
 	private double angleBounds = 5;
@@ -194,6 +198,9 @@ public class Robot extends IterativeRobot implements ITableListener {
 		case FindHighGoal:
 			findHighGoal();
 			break;
+		case GoHighGoal:
+			goHighGoal();
+			break;
 		case FindLiftStart:
 			findLift();
 			break;
@@ -291,12 +298,44 @@ public class Robot extends IterativeRobot implements ITableListener {
 				SmartDashboard.putString("DB/String 1", "PX=" + visionState.getxPixelOffsetHighGoal());
 			} else {
 				driveRobot(0, 0, 0);
-				mode = DriveState.HumanDrive;
+				mode = DriveState.GoHighGoal;
 				// perform high goal
 				// return control to teleop
 			}
 		} else {
 			driveRobot(0, 0, 0);
+			mode = DriveState.GoHighGoal;
+		}
+	}
+	
+	private void goHighGoal()
+	{
+		if(seesHighGoal)
+		{
+			double transValue;
+			double pixels = visionState.getyPixelOffsetHighGoal();
+			if (pixels < highZBounds * -1 || pixels > highZBounds) {
+				transValue = ((pixels / HIGH_MAX_ZOFFSET) * highZFactor);// Adjustable
+				if (transValue > 0) {
+					transValue += highZBump;// get over hump
+				} else {
+					transValue -= highZBump;
+				}
+
+				driveRobot(0, transValue, 0);
+				System.out.println(pixels);
+				SmartDashboard.putString("DB/String 2", "RV=" + transValue);
+				SmartDashboard.putString("DB/String 1", "PX=" + visionState.getxPixelOffsetHighGoal());
+			} else {
+				driveRobot(0, 0, 0);
+				mode = DriveState.GoHighGoal;
+				// perform high goal
+				// return control to teleop
+			}
+		}
+		else
+		{
+			driveRobot(0,0,0);
 			mode = DriveState.HumanDrive;
 		}
 	}
