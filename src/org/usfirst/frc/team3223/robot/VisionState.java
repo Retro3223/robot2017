@@ -6,7 +6,7 @@ import edu.wpi.first.wpilibj.tables.ITableListener;
 
 public class VisionState implements ITableListener {
    private boolean seesHighGoal;
-   private double xOffsetHighGoal;
+   private double xPixelOffsetHighGoal;
    
    private boolean seesLift;
    private double xOffsetLift; //in mm
@@ -24,8 +24,8 @@ public class VisionState implements ITableListener {
       if(key.equals("seesHighGoal")) {
          seesHighGoal = (boolean) value;
       }
-      if(key.equals("xOffsetHighGoal")) {
-         xOffsetHighGoal = (double) value;
+      if(key.equals("xPixelOffsetHighGoal")) {
+         xPixelOffsetHighGoal = (double) value;
       }
       if(key.equals("seesLift")) {
          seesLift = (boolean) value;
@@ -49,8 +49,8 @@ public class VisionState implements ITableListener {
       return seesHighGoal;
    }
 	
-   public double getxOffsetHighGoal() {
-      return xOffsetHighGoal;
+   public double getxPixelOffsetHighGoal() {
+      return xPixelOffsetHighGoal;
    }
    
    public boolean seesLift(){
