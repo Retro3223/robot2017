@@ -49,6 +49,11 @@ public class Robot extends IterativeRobot implements ITableListener {
 	
 	private Servo structurePosition;
 	private boolean isAuto;
+	private long lastOpened;
+	private boolean isShooting;
+	
+	private Servo trapdoor_servo;
+	private Servo mixer_servo;
 	private boolean isHighGoalPosition;
 	private boolean isGearPosition;
 
@@ -64,6 +69,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 	private double shooterSpeed = .75;
 	private double intakeSpeed = .8;
 
+	private static final int F_L_PORT = 6, F_R_PORT = 4, B_L_PORT = 0, B_R_PORT = 3, SHOOT_PORT = 2, ROPE_PORT = 1, INTAKE_PORT = 5, TRAPDOOR_PORT = 7, STRUCTURE_PORT=8;
 
 	private SpeedController fore_left_motor, fore_right_motor, back_left_motor, back_right_motor, shoot_motor, rope_motor, intake_motor;
 	private Encoder encoder;
@@ -133,7 +139,8 @@ public class Robot extends IterativeRobot implements ITableListener {
 		recorderContext.add("Y Acceleration", () -> sensorManager.getYAccel());
 		recorderContext.add("Z Acceleration", () -> sensorManager.getZAccel());
 		
-
+		lastOpened = System.currentTimeMillis();
+		
 		fore_left_motor = new TalonSRX(F_L_PORT);
 		fore_right_motor = new TalonSRX(F_R_PORT);
 		back_left_motor = new TalonSRX(B_L_PORT);
@@ -147,6 +154,8 @@ public class Robot extends IterativeRobot implements ITableListener {
 		shoot_motor = new Talon(SHOOT_PORT);
 		rope_motor = new Talon(ROPE_PORT);
 		intake_motor = new Talon(INTAKE_PORT);
+		trapdoor_servo = new Servo(TRAPDOOR_PORT);
+		mixer_servo = new Servo(MIXER_PORT);
 
 		networkTable = NetworkTable.getTable("SmartDashboard");
 		networkTable.addTableListener(this);
@@ -474,12 +483,27 @@ SmartDashboard.putString("DB/String 8", "" + rotVal);
 	
 	private void shoot() {
 		//shooterSpeed = SmartDashboard.getNumber("DB/Slider 3", 0.0);
-
+		
 		if (activeJoystick().getPOV(0) == 0) {
-			shoot_motor.set(shooterSpeed);
+			isShooting = true;
 		}
 		if (activeJoystick().getPOV(0) == 180) {
+			isShooting = false;
+		}
+		if(isShooting){
+			shoot_motor.set(shooterSpeed);
+			//mixer_servo.setSpeed(.1);
+		}
+		else{
 			shoot_motor.set(0);
+			//mixer_servo.set(.1);
+		}
+		if (activeJoystick().getRawButton(6)){
+			trapdoor_servo.setAngle(90);
+			lastOpened = System.currentTimeMillis();
+		}
+		if(System.currentTimeMillis()-lastOpened>=350){
+			trapdoor_servo.setAngle(0);
 		}
 	}
 
@@ -498,12 +522,12 @@ SmartDashboard.putString("DB/String 8", "" + rotVal);
 	
 	private void climb(){
 		if(activeJoystick().getRawButton(7)){
-			rope_motor.set(-.5);
+			rope_motor.set(-.8);
 		}
 		else
 		{
 			if(activeJoystick().getRawButton(8))
-				rope_motor.set(.5);
+				rope_motor.set(.8);
 			else
 			rope_motor.set(0);
 		}
@@ -521,15 +545,14 @@ SmartDashboard.putString("DB/String 8", "" + rotVal);
 		if (Math.abs(y) <= .1)
 			y = 0;
 		
-		if (activeJoystick().getRawButton(5))
-			x = -1;
-		if(activeJoystick().getRawButton(6))
-			x = 1;
+		double rightX = activeJoystick().getRawAxis(4);
+		
 		
 		rotation = activeJoystick().getRawAxis(3) - activeJoystick().getRawAxis(2); // triggers:(right-left)turn
 		if (Math.abs(rotation) <= .1)
 			rotation = 0;
-		
+		if(x!=0||y!=0||rotation!=0)
+			shoot_motor.set(0);
 		double angle = 0;
 		masterDrive.mecanumDrive_Cartesian(x , y , (rotation) / 1.5, angle);
 	}
