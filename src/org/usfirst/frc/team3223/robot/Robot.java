@@ -59,29 +59,31 @@ public class Robot extends IterativeRobot implements ITableListener {
 	private int currPilot = 0;
 	private int rumbleCount;
 	private int FarGearState;
+	
+	//TODO change nums
 	private double shooterSpeed = .75;
 	private double intakeSpeed = .8;
 
-	private static final int F_L_PORT = 6, F_R_PORT = 4, B_L_PORT = 0, B_R_PORT = 3, SHOOT_PORT = 2, ROPE_PORT = 1, INTAKE_PORT = 5, SERVO_PORT = 7; //changed B_L_PORT from 0
 
 	private SpeedController fore_left_motor, fore_right_motor, back_left_motor, back_right_motor, shoot_motor, rope_motor, intake_motor;
 	private Encoder encoder;
 
-	private static final int HIGH_MAX_XOFFSET = 160;
-	private int highBounds = 3;
-	private double highBump = 0.3;
+	//TODO alter vals
+	private static final int HIGH_MAX_XOFFSET = 160;//will not change
+	private int highBounds = 3;//pixels
+	private double highBump = 0.3;//power to overcome
 	private double highFactor = .5;
 	private boolean seesHighGoal = false;
 	
-	private static final int LIFT_MAX_ANGLE = 90;
-	private double angleBounds = 5;
-	private double angleBump = .1;
-	private double angleFactor = .21;
-	private static final int LIFT_MAX_XOFFSET = 600;
-	private double transBounds = 20;
-	private double transBump = .2;
-	private double transFactor = .36;
-	private static final int LIFT_MAX_ZOFFSET = 1500;
+	private static final int LIFT_MAX_ANGLE = 90;//will not change
+	private double angleBounds = 5;//degrees- happy zone
+	private double angleBump = .1;//motor val added to overcome friction [-1,1]
+	private double angleFactor = .21;//some random constant that Rhys set or the slope of power line
+	private static final int LIFT_MAX_XOFFSET = 600;//mm shouldn't change
+	private double transBounds = 20;//mm- happy zone
+	private double transBump = .2;//power added to overcome friction [-1,1]
+	private double transFactor = .36;//some random constant - slope of power line
+	
 	private boolean seesLift = false;
 	
 	private double outputRotValue;
@@ -152,7 +154,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 		joystickManager = new JoystickManager(()-> activeJoystick());
 		visionState = new VisionState();
 		sensorManager = new SensorManager();
-		structurePosition = new Servo(SERVO_PORT);
+		structurePosition = new Servo(STRUCTURE_PORT);
 		structurePosition.setAngle(10);
 		isHighGoalPosition = false;
 		isGearPosition = true;
@@ -172,19 +174,16 @@ public class Robot extends IterativeRobot implements ITableListener {
 		// Show what command your subsystem is running on the SmartDashboard
 		// SmartDashboard.putData(drivetrain);
 		
-		SmartDashboard.putString("DB/String 5", ""+angleBounds);
+		/*SmartDashboard.putString("DB/String 5", ""+angleBounds);
 		SmartDashboard.putString("DB/String 6", ""+angleBump);
 		SmartDashboard.putString("DB/String 7", ""+angleFactor);
 		
 		SmartDashboard.putNumber("DB/Slider 0", transBounds);
 		SmartDashboard.putNumber("DB/Slider 1", transBump);
 		SmartDashboard.putNumber("DB/Slider 2", transFactor);
-		SmartDashboard.putNumber("DB/Slider 3", shooterSpeed);
+		SmartDashboard.putNumber("DB/Slider 3", shooterSpeed);*/
 	}
 
-	public void switchSensorPosition(){
-		
-	}
 	
 	public void teleopInit() {
 		isAuto = false;
@@ -299,9 +298,9 @@ public class Robot extends IterativeRobot implements ITableListener {
 	private void findHighGoal() {
 		double rotationalValue;
 
-		highBounds = (int) SmartDashboard.getNumber("DB/Slider 0", highBounds);
+		/*highBounds = (int) SmartDashboard.getNumber("DB/Slider 0", highBounds);
 		highBump = SmartDashboard.getNumber("DB/Slider 1", highBump);
-		highFactor = SmartDashboard.getNumber("DB/Slider 2", highFactor);
+		highFactor = SmartDashboard.getNumber("DB/Slider 2", highFactor);*/
 		
 		if(!isHighGoalPosition && isGearPosition){
 			structurePosition.setAngle(145);
@@ -401,19 +400,19 @@ public class Robot extends IterativeRobot implements ITableListener {
 		}
 		
 		if (seesLift&&isGearPosition) {
-			double xOffset = visionState.getxOffsetLift() + 200;// mm
+			double xOffset = visionState.getxOffsetLift() + 280;// mm TODO xOffset on actual robot
 			double psiAngle = Math.toDegrees(visionState.getPsiLift());// rad ->
 																		// Degree
 			SmartDashboard.putString("DB/String 1", "xOff:" + xOffset);
 			SmartDashboard.putString("DB/String 2", "psi:" + psiAngle);
-
-			angleBounds = Double.parseDouble(SmartDashboard.getString("DB/String 5", "10"));
+			
+			/*angleBounds = Double.parseDouble(SmartDashboard.getString("DB/String 5", "10"));
 			angleBump = Double.parseDouble(SmartDashboard.getString("DB/String 6", ".1"));
 			angleFactor = Double.parseDouble(SmartDashboard.getString("DB/String 7", ".4"));
 
 			transBounds = SmartDashboard.getNumber("DB/Slider 0", 10);
 			transBump = SmartDashboard.getNumber("DB/Slider 1", .4);
-			transFactor = SmartDashboard.getNumber("DB/Slider 2", .1);
+			transFactor = SmartDashboard.getNumber("DB/Slider 2", .1);*/
 
 			double rotVal = 0;
 			double transVal = 0;
