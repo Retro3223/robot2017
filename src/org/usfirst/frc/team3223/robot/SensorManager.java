@@ -8,12 +8,12 @@ public class SensorManager {
 	private AHRS ahrs;
 	long currentTime; // ms
 	long previousTime;// ms
-	double previousXAccel;
-	double previousYAccel;
-	double previousZAccel;
-	double currentXAccel;
-	double currentYAccel;
-	double currentZAccel;
+	double XAccel;
+	double YAccel;
+	double ZAccel;
+	//double currentXAccel;
+	//double currentYAccel;
+	//double currentZAccel;
 	
 	public SensorManager() {
 		ahrs = new AHRS(SPI.Port.kMXP);
@@ -21,13 +21,10 @@ public class SensorManager {
 	
 	public void tick() {
 		previousTime = currentTime;
-		previousXAccel = currentXAccel;
-		previousYAccel = currentYAccel;
-		previousZAccel = currentZAccel;
 		currentTime = System.currentTimeMillis();
-		currentXAccel = ahrs.getWorldLinearAccelX();
-		currentYAccel = ahrs.getWorldLinearAccelY();
-		currentZAccel = ahrs.getWorldLinearAccelZ();
+		XAccel = ahrs.getWorldLinearAccelX();
+		YAccel = ahrs.getWorldLinearAccelY();
+		ZAccel = ahrs.getWorldLinearAccelZ();
 		
 	}
 	
@@ -59,7 +56,23 @@ public class SensorManager {
 		return Math.toRadians(getDeltaAngle())/((currentTime-previousTime)/1000.000);
 	}
 	
-	public double getXJerk(){
+	/*public double getXJerk(){
 		return (currentXAccel-previousXAccel)/(currentTime-previousTime);
+	}
+	
+	public double getYJerk(){
+		return (currentYAccel-previousYAccel)/(currentTime-previousTime);
+	}*/
+	
+	public double getXAccel(){
+		return this.XAccel;
+	}
+	
+	public double getYAccel(){
+		return this.YAccel;
+	}
+	
+	public double getZAccel(){
+		return this.ZAccel;
 	}
 }
