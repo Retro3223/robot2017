@@ -49,7 +49,13 @@ public class Robot extends IterativeRobot implements ITableListener {
 	
 	private Servo structurePosition;
 	private boolean isAuto;
+	private long lastOpened;
+	private boolean isShooting;
+	
+	private Servo trapdoor_servo;
+	private Servo mixer_servo;
 	private boolean isHighGoalPosition;
+	private boolean isGearPosition;
 
 	private DriveState mode = DriveState.HumanDrive;
 	private AutonomousMode autoMode;
@@ -58,29 +64,32 @@ public class Robot extends IterativeRobot implements ITableListener {
 	private int currPilot = 0;
 	private int rumbleCount;
 	private int FarGearState;
+	
+	//TODO change nums
 	private double shooterSpeed = .75;
 	private double intakeSpeed = .8;
 
-	private static final int F_L_PORT = 6, F_R_PORT = 4, B_L_PORT = 0, B_R_PORT = 3, SHOOT_PORT = 2, ROPE_PORT = 1, INTAKE_PORT = 5;
+	private static final int F_L_PORT = 6, F_R_PORT = 4, B_L_PORT = 0, B_R_PORT = 3, SHOOT_PORT = 2, ROPE_PORT = 1, INTAKE_PORT = 5, TRAPDOOR_PORT = 7, STRUCTURE_PORT=8;
 
 	private SpeedController fore_left_motor, fore_right_motor, back_left_motor, back_right_motor, shoot_motor, rope_motor, intake_motor;
 	private Encoder encoder;
 
-	private static final int HIGH_MAX_XOFFSET = 160;
-	private int highBounds = 3;
-	private double highBump = 0.3;
+	//TODO alter vals
+	private static final int HIGH_MAX_XOFFSET = 160;//will not change
+	private int highBounds = 3;//pixels
+	private double highBump = 0.3;//power to overcome
 	private double highFactor = .5;
 	private boolean seesHighGoal = false;
 	
-	private static final int LIFT_MAX_ANGLE = 90;
-	private double angleBounds = 5;
-	private double angleBump = .1;
-	private double angleFactor = .21;
-	private static final int LIFT_MAX_XOFFSET = 600;
-	private double transBounds = 20;
-	private double transBump = .15;
-	private double transFactor = .36;
-	private static final int LIFT_MAX_ZOFFSET = 1500;
+	private static final int LIFT_MAX_ANGLE = 90;//will not change
+	private double angleBounds = 5;//degrees- happy zone
+	private double angleBump = .1;//motor val added to overcome friction [-1,1]
+	private double angleFactor = .21;//some random constant that Rhys set or the slope of power line
+	private static final int LIFT_MAX_XOFFSET = 600;//mm shouldn't change
+	private double transBounds = 20;//mm- happy zone
+	private double transBump = .2;//power added to overcome friction [-1,1]
+	private double transFactor = .36;//some random constant - slope of power line
+	
 	private boolean seesLift = false;
 	
 	private double outputRotValue;
@@ -94,6 +103,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 	private RecorderContext recorderContext;
 	private RobotDrive masterDrive;
 	
+	private long startTime;
 
 
 	/**
@@ -125,7 +135,12 @@ public class Robot extends IterativeRobot implements ITableListener {
 		recorderContext.add("back_left_voltage", () -> back_left_motor.get());
 		recorderContext.add("back_right_voltage", () -> back_right_motor.get());
 		recorderContext.add("servo angle", () -> structurePosition.getAngle());
-
+		recorderContext.add("X Acceleration", () -> sensorManager.getXAccel());
+		recorderContext.add("Y Acceleration", () -> sensorManager.getYAccel());
+		recorderContext.add("Z Acceleration", () -> sensorManager.getZAccel());
+		
+		lastOpened = System.currentTimeMillis();
+		
 		fore_left_motor = new TalonSRX(F_L_PORT);
 		fore_right_motor = new TalonSRX(F_R_PORT);
 		back_left_motor = new TalonSRX(B_L_PORT);
@@ -139,6 +154,8 @@ public class Robot extends IterativeRobot implements ITableListener {
 		shoot_motor = new Talon(SHOOT_PORT);
 		rope_motor = new Talon(ROPE_PORT);
 		intake_motor = new Talon(INTAKE_PORT);
+		trapdoor_servo = new Servo(TRAPDOOR_PORT);
+		mixer_servo = new Servo(MIXER_PORT);
 
 		networkTable = NetworkTable.getTable("SmartDashboard");
 		networkTable.addTableListener(this);
@@ -146,9 +163,10 @@ public class Robot extends IterativeRobot implements ITableListener {
 		joystickManager = new JoystickManager(()-> activeJoystick());
 		visionState = new VisionState();
 		sensorManager = new SensorManager();
-		structurePosition = new Servo(0);
-		structurePosition.setAngle(180);
+		structurePosition = new Servo(STRUCTURE_PORT);
+		structurePosition.setAngle(10);
 		isHighGoalPosition = false;
+		isGearPosition = true;
 		FarGearState = 1;
 		turningStateMachine = new TurningStateMachine(visionState, sensorManager, (Double voltage) -> {
 			double v = voltage.doubleValue();
@@ -165,19 +183,16 @@ public class Robot extends IterativeRobot implements ITableListener {
 		// Show what command your subsystem is running on the SmartDashboard
 		// SmartDashboard.putData(drivetrain);
 		
-		SmartDashboard.putString("DB/String 5", ""+angleBounds);
+		/*SmartDashboard.putString("DB/String 5", ""+angleBounds);
 		SmartDashboard.putString("DB/String 6", ""+angleBump);
 		SmartDashboard.putString("DB/String 7", ""+angleFactor);
 		
 		SmartDashboard.putNumber("DB/Slider 0", transBounds);
 		SmartDashboard.putNumber("DB/Slider 1", transBump);
 		SmartDashboard.putNumber("DB/Slider 2", transFactor);
-		SmartDashboard.putNumber("DB/Slider 3", shooterSpeed);
+		SmartDashboard.putNumber("DB/Slider 3", shooterSpeed);*/
 	}
 
-	public void switchSensorPosition(){
-		
-	}
 	
 	public void teleopInit() {
 		isAuto = false;
@@ -188,14 +203,10 @@ public class Robot extends IterativeRobot implements ITableListener {
 	 */
 	public void teleopPeriodic() {
 		getInput();
-		structurePosition.getAngle();
-		//structurePosition.setAngle(60);
-		//structurePosition.set(1);
 		switch (mode) {
 		case HumanDrive:
 			if (activeJoystick().getRawButton(4)){
 				swapActiveJoystick();
-				//structurePosition.setAngle(180);
 			}
 			driveHuman();
 			shoot();
@@ -245,8 +256,13 @@ public class Robot extends IterativeRobot implements ITableListener {
 		networkTable.putBoolean("Sees High Goal", visionState.seesHighGoal());
 		networkTable.putNumber("psi Lift", visionState.getPsiLift());
 		networkTable.putNumber("servoAngle", structurePosition.getAngle());
+		networkTable.putBoolean("isHighGoalPosition", isHighGoalPosition);
+		networkTable.putBoolean("isGearPosition", isGearPosition);
+		networkTable.putNumber("XAccel", sensorManager.XAccel);
+		networkTable.putNumber("YAccel", sensorManager.YAccel);
+		networkTable.putNumber("ZAccel", sensorManager.ZAccel);
 		recorderContext.tick();
-
+		
 	}
 
 	private void getInput() {
@@ -291,16 +307,24 @@ public class Robot extends IterativeRobot implements ITableListener {
 	private void findHighGoal() {
 		double rotationalValue;
 
-		highBounds = (int) SmartDashboard.getNumber("DB/Slider 0", highBounds);
+		/*highBounds = (int) SmartDashboard.getNumber("DB/Slider 0", highBounds);
 		highBump = SmartDashboard.getNumber("DB/Slider 1", highBump);
-		highFactor = SmartDashboard.getNumber("DB/Slider 2", highFactor);
+		highFactor = SmartDashboard.getNumber("DB/Slider 2", highFactor);*/
 		
-		if(!isHighGoalPosition){
-			structurePosition.setAngle(135);
+		if(!isHighGoalPosition && isGearPosition){
+			structurePosition.setAngle(145);
+			isGearPosition = false;
+			startTime = System.currentTimeMillis();
+		}
+		
+		if(!isHighGoalPosition && !isGearPosition){
+			if(System.currentTimeMillis()-startTime>=700){
+				isHighGoalPosition = true;
+			}
 		}
 		
 
-		if (seesHighGoal) {
+		if (seesHighGoal&&isHighGoalPosition) {
 			double pixels = visionState.getxPixelOffsetHighGoal();
 			if (pixels < highBounds * -1 || pixels > highBounds) {
 				rotationalValue = ((pixels / HIGH_MAX_XOFFSET) * highFactor);// Adjustable
@@ -320,7 +344,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 				// perform high goal
 				// return control to teleop
 			}
-		} else {
+		} else if(isHighGoalPosition) {
 			driveRobot(0, 0, 0);
 			mode = DriveState.HumanDrive;
 		}
@@ -372,20 +396,32 @@ public class Robot extends IterativeRobot implements ITableListener {
 	
 	private void findLift() {
 		
-		if (seesLift) {
-			double xOffset = visionState.getxOffsetLift();// mm
+		if(isHighGoalPosition && !isGearPosition){
+			structurePosition.setAngle(10);
+			isHighGoalPosition = false;
+			startTime = System.currentTimeMillis();
+		}
+		
+		if(!isHighGoalPosition && !isGearPosition){
+			if(System.currentTimeMillis()-startTime>=700){
+				isGearPosition = true;
+			}
+		}
+		
+		if (seesLift&&isGearPosition) {
+			double xOffset = visionState.getxOffsetLift() + 280;// mm TODO xOffset on actual robot
 			double psiAngle = Math.toDegrees(visionState.getPsiLift());// rad ->
 																		// Degree
 			SmartDashboard.putString("DB/String 1", "xOff:" + xOffset);
 			SmartDashboard.putString("DB/String 2", "psi:" + psiAngle);
-
-			angleBounds = Double.parseDouble(SmartDashboard.getString("DB/String 5", "10"));
+			
+			/*angleBounds = Double.parseDouble(SmartDashboard.getString("DB/String 5", "10"));
 			angleBump = Double.parseDouble(SmartDashboard.getString("DB/String 6", ".1"));
 			angleFactor = Double.parseDouble(SmartDashboard.getString("DB/String 7", ".4"));
 
 			transBounds = SmartDashboard.getNumber("DB/Slider 0", 10);
 			transBump = SmartDashboard.getNumber("DB/Slider 1", .4);
-			transFactor = SmartDashboard.getNumber("DB/Slider 2", .1);
+			transFactor = SmartDashboard.getNumber("DB/Slider 2", .1);*/
 
 			double rotVal = 0;
 			double transVal = 0;
@@ -410,12 +446,13 @@ public class Robot extends IterativeRobot implements ITableListener {
 					outputXTransValue = transVal;
 				}
 			
-				SmartDashboard.putString("DB/String 8", "" + rotVal);
+SmartDashboard.putString("DB/String 8", "" + rotVal);
 				SmartDashboard.putNumber("DB/Slider 3", transVal);
 				
 				if (rotVal == 0 && transVal == 0)//both happy - lined up
 				{
 					if(isAuto)
+						
 						autoMode = AutonomousMode.GoLift;
 					else
 						mode = DriveState.FindLiftContinue;
@@ -425,7 +462,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 				}
 			}
 		} 
-		else {
+		else if(isGearPosition) {
 			driveRobot(0, 0, 0);
 			if(!isAuto)
 				mode = DriveState.HumanDrive;
@@ -433,43 +470,40 @@ public class Robot extends IterativeRobot implements ITableListener {
 	}
 
 	private void goLift() {
-		
-		if (seesLift) {
-			double zOffset = visionState.getzOffsetLift();// mm
-			double transVal = 0;
-			
-			transBounds = SmartDashboard.getNumber("DB/Slider 0", 10);
-			transBump = SmartDashboard.getNumber("DB/Slider 1", .4);
-			transFactor = SmartDashboard.getNumber("DB/Slider 2", .1);
-			
-			SmartDashboard.putString("DB/String 9", "zOff:" + zOffset);
-
-			if (zOffset > 700) {
-				transVal = zOffset / LIFT_MAX_ZOFFSET * transFactor + transBump;
-				outputYTransValue = transVal;
-				driveRobot(0, transVal, 0);
-			} else {
-				driveRobot(0,0,0);
-				if(isAuto)
-					autoMode = AutonomousMode.Finished;
-				else
-					mode = DriveState.HumanDrive;
-			}
-		} else {
-			driveRobot(0, 0, 0);
-			if(!isAuto)
+		driveRobot(0, 0.4, 0);
+		if(sensorManager.getYAccel()>1){
+			driveRobot(0,0,0);
+			if(!isAuto){
 				mode = DriveState.HumanDrive;
+			}else{
+				autoMode = AutonomousMode.Finished;
+			}
 		}
 	}
 	
 	private void shoot() {
 		//shooterSpeed = SmartDashboard.getNumber("DB/Slider 3", 0.0);
-
+		
 		if (activeJoystick().getPOV(0) == 0) {
-			shoot_motor.set(shooterSpeed);
+			isShooting = true;
 		}
 		if (activeJoystick().getPOV(0) == 180) {
+			isShooting = false;
+		}
+		if(isShooting){
+			shoot_motor.set(shooterSpeed);
+			//mixer_servo.setSpeed(.1);
+		}
+		else{
 			shoot_motor.set(0);
+			//mixer_servo.set(.1);
+		}
+		if (activeJoystick().getRawButton(6)){
+			trapdoor_servo.setAngle(90);
+			lastOpened = System.currentTimeMillis();
+		}
+		if(System.currentTimeMillis()-lastOpened>=350){
+			trapdoor_servo.setAngle(0);
 		}
 	}
 
@@ -488,12 +522,12 @@ public class Robot extends IterativeRobot implements ITableListener {
 	
 	private void climb(){
 		if(activeJoystick().getRawButton(7)){
-			rope_motor.set(-.5);
+			rope_motor.set(-.8);
 		}
 		else
 		{
 			if(activeJoystick().getRawButton(8))
-				rope_motor.set(.5);
+				rope_motor.set(.8);
 			else
 			rope_motor.set(0);
 		}
@@ -511,15 +545,14 @@ public class Robot extends IterativeRobot implements ITableListener {
 		if (Math.abs(y) <= .1)
 			y = 0;
 		
-		if (activeJoystick().getRawButton(5))
-			x = -1;
-		if(activeJoystick().getRawButton(6))
-			x = 1;
+		double rightX = activeJoystick().getRawAxis(4);
+		
 		
 		rotation = activeJoystick().getRawAxis(3) - activeJoystick().getRawAxis(2); // triggers:(right-left)turn
 		if (Math.abs(rotation) <= .1)
 			rotation = 0;
-		
+		if(x!=0||y!=0||rotation!=0)
+			shoot_motor.set(0);
 		double angle = 0;
 		masterDrive.mecanumDrive_Cartesian(x , y , (rotation) / 1.5, angle);
 	}
@@ -584,8 +617,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 			findLift();
 			break;
 		case GoLift:
-			//goLift();
-			autoMode = AutonomousMode.Finished;
+			goLift();
 			break;
 		case Boiler:
 			break;
@@ -596,11 +628,13 @@ public class Robot extends IterativeRobot implements ITableListener {
 		recorderContext.tick();
 		sensorManager.tick();
 		networkTable.putBoolean("Sees Lift", visionState.seesLift());
+		networkTable.putBoolean("isHighGoalPosition", isHighGoalPosition);
+		networkTable.putBoolean("isGearPosition", isGearPosition);
 	}
 	
 	//selects either middle lift or far lift
 	private void selectGearTarget(){
-		if(visionState.seesLift()&&Math.abs(visionState.getxOffsetLift())<100)
+		if(visionState.seesLift()&&Math.abs(visionState.getxOffsetLift())<500)
 		{
 			autoMode = AutonomousMode.MiddleGear;
 		}
