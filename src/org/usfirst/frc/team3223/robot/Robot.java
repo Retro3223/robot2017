@@ -64,6 +64,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 	private double shooterSpeed = .75;
 	private double intakeSpeed = .8;
 
+	private static final int F_L_PORT = 6, F_R_PORT = 4, B_L_PORT = 0, B_R_PORT = 3, SHOOT_PORT = 2, ROPE_PORT = 1, INTAKE_PORT = 5, STRUCTURE_PORT = 8;
 
 	private SpeedController fore_left_motor, fore_right_motor, back_left_motor, back_right_motor, shoot_motor, rope_motor, intake_motor;
 	private Encoder encoder;
@@ -81,7 +82,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 	private double angleFactor = .21;//some random constant that Rhys set or the slope of power line
 	private static final int LIFT_MAX_XOFFSET = 600;//mm shouldn't change
 	private double transBounds = 20;//mm- happy zone
-	private double transBump = .2;//power added to overcome friction [-1,1]
+	private double transBump = .25;//power added to overcome friction [-1,1]
 	private double transFactor = .36;//some random constant - slope of power line
 	
 	private boolean seesLift = false;
@@ -400,7 +401,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 		}
 		
 		if (seesLift&&isGearPosition) {
-			double xOffset = visionState.getxOffsetLift() + 280;// mm TODO xOffset on actual robot
+			double xOffset = visionState.getxOffsetLift() + 370;// mm TODO xOffset on actual robot
 			double psiAngle = Math.toDegrees(visionState.getPsiLift());// rad ->
 																		// Degree
 			SmartDashboard.putString("DB/String 1", "xOff:" + xOffset);
@@ -428,7 +429,12 @@ public class Robot extends IterativeRobot implements ITableListener {
 					outputRotValue = rotVal;
 				}
 				if (xOffset > transBounds || transBounds < -1*xOffset) //out of bounds
-				{
+				{	
+					/*if(xOffset>transBounds){
+						transVal = 0.27;
+					}else{
+						transVal = -0.27;
+					}*/
 					transVal = xOffset / LIFT_MAX_XOFFSET * transFactor;
 					if (transVal > 0)
 						transVal += transBump;
@@ -437,7 +443,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 					outputXTransValue = transVal;
 				}
 			
-SmartDashboard.putString("DB/String 8", "" + rotVal);
+				SmartDashboard.putString("DB/String 8", "" + rotVal);
 				SmartDashboard.putNumber("DB/Slider 3", transVal);
 				
 				if (rotVal == 0 && transVal == 0)//both happy - lined up
@@ -461,7 +467,7 @@ SmartDashboard.putString("DB/String 8", "" + rotVal);
 	}
 
 	private void goLift() {
-		driveRobot(0, 0.4, 0);
+		driveRobot(0, 0.3, 0);
 		if(sensorManager.getYAccel()>1){
 			driveRobot(0,0,0);
 			if(!isAuto){
@@ -611,7 +617,7 @@ SmartDashboard.putString("DB/String 8", "" + rotVal);
 	
 	//selects either middle lift or far lift
 	private void selectGearTarget(){
-		if(visionState.seesLift()&&Math.abs(visionState.getxOffsetLift())<500)
+		if(visionState.seesLift()&&Math.abs(visionState.getxOffsetLift())<200)
 		{
 			autoMode = AutonomousMode.MiddleGear;
 		}
@@ -626,7 +632,7 @@ SmartDashboard.putString("DB/String 8", "" + rotVal);
 	{
 		// Turn right 30 degrees
 		if(FarGearState == 1){
-			turningStateMachine.setInputAngle(Math.toRadians(45));
+			turningStateMachine.setInputAngle(Math.toRadians(30));
 			turningStateMachine.run();
 			if(turningStateMachine.isDone()){
 				turningStateMachine.reset();
@@ -643,7 +649,7 @@ SmartDashboard.putString("DB/String 8", "" + rotVal);
 		
 		// turn left 60 degrees
 		if(FarGearState == 3){
-			turningStateMachine.setInputAngle(Math.toRadians(-90));
+			turningStateMachine.setInputAngle(Math.toRadians(-60));
 			turningStateMachine.run();
 			if(turningStateMachine.isDone()){
 				turningStateMachine.reset();
@@ -660,7 +666,7 @@ SmartDashboard.putString("DB/String 8", "" + rotVal);
 		
 		//Turns robot to face straight ahead
 		if(FarGearState==5){
-			turningStateMachine.setInputAngle(Math.toRadians(45));
+			turningStateMachine.setInputAngle(Math.toRadians(30));
 			turningStateMachine.run();
 			if(turningStateMachine.isDone()){
 				FarGearState = 6;
