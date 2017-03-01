@@ -621,10 +621,10 @@ SmartDashboard.putString("DB/String 8", "" + rotVal);
 		
 		double rightX = activeJoystick().getRawAxis(4);
 		double rightY = activeJoystick().getRawAxis(5);
-		if (Math.abs(x) <= .15 || Math.abs(y) <= .15)
+		if (Math.abs(x) <= .17 || Math.abs(y) <= .17)
 		{
-			y = rightY/3;
-			x = rightX/3;
+			y = rightY/4;
+			x = rightX/4;
 		}
 		
 		rotation = activeJoystick().getRawAxis(3) - activeJoystick().getRawAxis(2); // triggers:(right-left)turn
@@ -928,7 +928,7 @@ SmartDashboard.putString("DB/String 8", "" + rotVal);
 	 * Axis:
 	 * RT:rotate right 
 	 * LT:rotate left 
-	 * RS: 
+	 * RS: slow movement
 	 * LS:x-z movement
 	 * 
 	 * DPAD:
