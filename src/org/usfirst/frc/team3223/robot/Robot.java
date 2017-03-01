@@ -64,8 +64,8 @@ public class Robot extends IterativeRobot implements ITableListener {
 	private int FarGearState;
 	
 	//TODO change nums
-	private double shooterSpeed = .75;
-	private double intakeSpeed = .8;
+	private double shooterSpeed = .82;
+	private double intakeSpeed = .85;
 
 
 	private static final int F_L_PORT = 6, F_R_PORT = 4, B_L_PORT = 0, B_R_PORT = 3, SHOOT_PORT = 2, ROPE_PORT = 1, INTAKE_PORT = 5, TRAPDOOR_PORT = 7, STRUCTURE_PORT=8;
@@ -77,7 +77,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 	private static final int HIGH_MAX_XOFFSET = 160;//will not change
 	private int highBounds = 3;//pixels
 	private double highBump = 0.3;//power to overcome
-	private double highFactor = .5;
+	private double highFactor = .3;
 	private boolean seesHighGoal = false;
 	private static final int HIGH_MAX_ZOFFSET = 120;
 	private int highZBounds = 3;
@@ -223,9 +223,9 @@ public class Robot extends IterativeRobot implements ITableListener {
 			shoot();
 			intake();
 			climb();
-			if(activeJoystick().getRawButton(10)) {
-				mode = DriveState.TurnLikeItsTuesday;
-			}
+			//if(activeJoystick().getRawButton(10)) {
+			//	mode = DriveState.TurnLikeItsTuesday;
+			//}
 			break;
 		case FindHighGoal:
 			findHighGoal();
@@ -353,16 +353,11 @@ public class Robot extends IterativeRobot implements ITableListener {
 		highFactor = SmartDashboard.getNumber("DB/Slider 2", highFactor);*/
 		
 		if(!isHighGoalPosition && isGearPosition){
-			structurePosition.setAngle(145);
+			structurePosition.setAngle(155);
 			isGearPosition = false;
-			startTime = System.currentTimeMillis();
+			isHighGoalPosition = true;
 		}
 		
-		if(!isHighGoalPosition && !isGearPosition){
-			if(System.currentTimeMillis()-startTime>=700){
-				isHighGoalPosition = true;
-			}
-		}
 		
 
 		if (seesHighGoal&&isHighGoalPosition) {
@@ -558,8 +553,11 @@ public class Robot extends IterativeRobot implements ITableListener {
 	private void shoot() {
 		//shooterSpeed = SmartDashboard.getNumber("DB/Slider 3", 0.0);
 		System.out.println(visionState.getyPixelOffsetHighGoal());
-		if (joystickManager.isShooterToggled()) {
-			isShooting = !isShooting;
+		if (activeJoystick().getPOV(0) == 0) {
+			isShooting = true;
+		}
+		if (activeJoystick().getPOV(0) == 180) {
+			isShooting = false;
 		}
 
 		if(isShooting){
@@ -627,7 +625,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 		
 		double rightX = activeJoystick().getRawAxis(4);
 		double rightY = activeJoystick().getRawAxis(5);
-		if (Math.abs(x) <= .17 || Math.abs(y) <= .17)
+		if (Math.abs(rightX) > .15 || Math.abs(rightY) > .15)
 		{
 			y = rightY/4;
 			x = rightX/4;
