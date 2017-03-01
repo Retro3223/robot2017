@@ -60,6 +60,8 @@ public class Robot extends IterativeRobot implements ITableListener {
 	private Joystick[] pilots = new Joystick[2];
 	private int currPilot = 0;
 	private int rumbleCount;
+	private boolean isInverted = false;
+	
 	private int FarGearState;
 	private double shooterSpeed = .75;
 	private double intakeSpeed = .8;
@@ -474,13 +476,11 @@ public class Robot extends IterativeRobot implements ITableListener {
 	
 	private void shoot() {
 		//shooterSpeed = SmartDashboard.getNumber("DB/Slider 3", 0.0);
-		
-		if (activeJoystick().getPOV(0) == 0) {
-			isShooting = true;
+		System.out.println(visionState.getzPixelOffsetHighGoal());
+		if (joystickManager.isShooterToggled()) {
+			isShooting = !isShooting;
 		}
-		if (activeJoystick().getPOV(0) == 180) {
-			isShooting = false;
-		}
+
 		if(isShooting){
 			shoot_motor.set(shooterSpeed);
 			//mixer_servo.setSpeed(.1);
@@ -529,15 +529,28 @@ public class Robot extends IterativeRobot implements ITableListener {
 		double y = 0;
 		double rotation = 0;
 		
+		
 		x = activeJoystick().getRawAxis(0);// x of l stick
 		y = activeJoystick().getRawAxis(1);// y of l stick
 		if (Math.abs(x) <= .1)
 			x = 0;
 		if (Math.abs(y) <= .1)
 			y = 0;
+		if(joystickManager.isInvertToggled())
+			isInverted = !isInverted;
+		if(isInverted)
+		{
+			x *= -1;
+			y *= -1;
+		}
 		
 		double rightX = activeJoystick().getRawAxis(4);
-		
+		double rightY = activeJoystick().getRawAxis(5);
+		if (Math.abs(x) <= .15 || Math.abs(y) <= .15)
+		{
+			y = rightY/3;
+			x = rightX/3;
+		}
 		
 		rotation = activeJoystick().getRawAxis(3) - activeJoystick().getRawAxis(2); // triggers:(right-left)turn
 		if (Math.abs(rotation) <= .1)
@@ -545,6 +558,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 		if(x!=0||y!=0||rotation!=0)
 			shoot_motor.set(0);
 		double angle = 0;
+		
 		masterDrive.mecanumDrive_Cartesian(x , y , (rotation) / 1.5, angle);
 	}
 
@@ -694,11 +708,11 @@ public class Robot extends IterativeRobot implements ITableListener {
 	 * B:mode=1 
 	 * X:mode=2 
 	 * Y:Swap Pilots 
-	 * RB:strafe-Right 
-	 * LB:strafe-Left 
+	 * RB:Operate Trapdoor 
+	 * LB: 
 	 * SEL:climber
 	 * STA:straight back
-	 * R3:
+	 * R3:Reverse Controls
 	 * L3:
 	 * 
 	 * Axis:

@@ -9,6 +9,11 @@ public class JoystickManager {
 	private boolean leftDPADIsToggled;
 	private boolean rightDPADWasPressed;
 	private boolean rightDPADIsToggled;
+	private boolean upDPADWasPressed;
+	private boolean upDPADIsToggled;
+	private boolean R3WasPressed;
+	private boolean R3IsToggled;
+	
 	private Supplier<Joystick> getActiveJoystick;
 	
 	public boolean isLeftDPAD(){
@@ -17,6 +22,14 @@ public class JoystickManager {
 	
 	public boolean isRightDPAD(){
 		return activeJoystick().getPOV(0) == 90;
+	}
+	
+	public boolean isUpDPAD(){
+		return activeJoystick().getPOV(0) == 0;
+	}
+	
+	public boolean isR3(){
+		return activeJoystick().getRawButton(10);
 	}
 	
 	private Joystick activeJoystick(){
@@ -31,6 +44,14 @@ public class JoystickManager {
 		return rightDPADIsToggled;
 	}
 	
+	public boolean isInvertToggled(){
+		return R3IsToggled;
+	}
+	
+	public boolean isShooterToggled(){
+		return upDPADIsToggled;
+	}
+	
 	public boolean isClimberButtonDepressed(){
 		return activeJoystick().getRawButton(10);
 	}
@@ -42,8 +63,17 @@ public class JoystickManager {
 		if(!rightDPADWasPressed && isRightDPAD()){
 			rightDPADIsToggled = !rightDPADIsToggled;
 		}
+		if(!upDPADWasPressed && isUpDPAD()){
+			upDPADIsToggled = !upDPADIsToggled;
+		}
+		if(!R3WasPressed && isR3()){
+			R3IsToggled = !R3IsToggled;
+		}
+			
 		leftDPADWasPressed = isLeftDPAD();
 		rightDPADWasPressed = isRightDPAD();
+		upDPADWasPressed = isUpDPAD();
+		R3WasPressed = isR3();
 	}
 	
 	public JoystickManager(Supplier<Joystick> getActiveJoystick){
