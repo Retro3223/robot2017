@@ -59,6 +59,8 @@ public class Robot extends IterativeRobot implements ITableListener {
 	private Joystick[] pilots = new Joystick[2];
 	private int currPilot = 0;
 	private int rumbleCount;
+	private boolean isInverted = false;
+	
 	private int FarGearState;
 	
 	//TODO change nums
@@ -77,6 +79,11 @@ public class Robot extends IterativeRobot implements ITableListener {
 	private double highBump = 0.3;//power to overcome
 	private double highFactor = .5;
 	private boolean seesHighGoal = false;
+	private static final int HIGH_MAX_ZOFFSET = 120;
+	private int highZBounds = 3;
+	private int highZFocus = 60;
+	private double highZBump = .15;
+	private double highZFactor = .4;
 	
 	private static final int LIFT_MAX_ANGLE = 90;//will not change
 
@@ -222,6 +229,9 @@ public class Robot extends IterativeRobot implements ITableListener {
 			break;
 		case FindHighGoal:
 			findHighGoal();
+			break;
+		case GoHighGoal:
+			goHighGoal();
 			break;
 		case FindLiftStart:
 			findLift();
@@ -369,6 +379,34 @@ public class Robot extends IterativeRobot implements ITableListener {
 
 				SmartDashboard.putString("DB/String 2", "RV=" + rotationalValue);
 				SmartDashboard.putString("DB/String 1", "PX=" + visionState.getxPixelOffsetHighGoal());
+			} else {
+				driveRobot(0, 0, 0);
+				mode = DriveState.GoHighGoal;
+				// perform high goal
+				// return control to teleop
+			}
+		} else {
+			driveRobot(0, 0, 0);
+			mode = DriveState.HumanDrive;
+		}
+	}
+	private void goHighGoal(){
+		if (seesHighGoal) {
+			double transValue = 0;
+			double pixels = visionState.getzPixelOffsetHighGoal();
+			System.out.println(pixels);
+			if (pixels < (highZBounds*-1+highZFocus) || pixels > (highZBounds+highZFocus)) {
+				transValue = ((pixels / HIGH_MAX_ZOFFSET) * highZFactor);// Adjustable
+				if (transValue > 0) {
+					transValue += highZBump;// get over hump
+				} else {
+					transValue -= highZBump;
+				}
+
+				driveRobot(0, transValue, 0);
+
+				//SmartDashboard.putString("DB/String 2", "RV=" + rotationalValue);
+				//SmartDashboard.putString("DB/String 1", "PX=" + visionState.getxPixelOffsetHighGoal());
 			} else {
 				driveRobot(0, 0, 0);
 				mode = DriveState.HumanDrive;
@@ -519,13 +557,11 @@ public class Robot extends IterativeRobot implements ITableListener {
 	
 	private void shoot() {
 		//shooterSpeed = SmartDashboard.getNumber("DB/Slider 3", 0.0);
-		
-		if (activeJoystick().getPOV(0) == 0) {
-			isShooting = true;
+		System.out.println(visionState.getzPixelOffsetHighGoal());
+		if (joystickManager.isShooterToggled()) {
+			isShooting = !isShooting;
 		}
-		if (activeJoystick().getPOV(0) == 180) {
-			isShooting = false;
-		}
+
 		if(isShooting){
 			shoot_motor.set(shooterSpeed);
 			//mixer_servo.setSpeed(.1);
@@ -574,15 +610,28 @@ public class Robot extends IterativeRobot implements ITableListener {
 		double y = 0;
 		double rotation = 0;
 		
+		
 		x = activeJoystick().getRawAxis(0);// x of l stick
 		y = activeJoystick().getRawAxis(1);// y of l stick
 		if (Math.abs(x) <= .1)
 			x = 0;
 		if (Math.abs(y) <= .1)
 			y = 0;
+		if(joystickManager.isInvertToggled())
+			isInverted = !isInverted;
+		if(isInverted)
+		{
+			x *= -1;
+			y *= -1;
+		}
 		
 		double rightX = activeJoystick().getRawAxis(4);
-		
+		double rightY = activeJoystick().getRawAxis(5);
+		if (Math.abs(x) <= .17 || Math.abs(y) <= .17)
+		{
+			y = rightY/4;
+			x = rightX/4;
+		}
 		
 		rotation = activeJoystick().getRawAxis(3) - activeJoystick().getRawAxis(2); // triggers:(right-left)turn
 		if (Math.abs(rotation) <= .1)
@@ -590,6 +639,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 		if(x!=0||y!=0||rotation!=0)
 			shoot_motor.set(0);
 		double angle = 0;
+		
 		masterDrive.mecanumDrive_Cartesian(x , y , (rotation) / 1.5, angle);
 	}
 
@@ -875,17 +925,17 @@ public class Robot extends IterativeRobot implements ITableListener {
 	 * B:find High goal
 	 * X:find lift 
 	 * Y:Swap Pilots 
-	 * RB:strafe-Right 
-	 * LB:strafe-Left 
+	 * RB:Operate Trapdoor 
+	 * LB: 
 	 * SEL:climber
 	 * STA:straight back
-	 * R3:
+	 * R3:Reverse Controls
 	 * L3:
 	 * 
 	 * Axis:
 	 * RT:rotate right 
 	 * LT:rotate left 
-	 * RS: 
+	 * RS: slow movement
 	 * LS:x-z movement
 	 * 
 	 * DPAD:

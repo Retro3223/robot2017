@@ -9,6 +9,7 @@ import edu.wpi.first.wpilibj.tables.ITableListener;
 public class VisionState implements ITableListener, IRemoteConnectionListener {
    private boolean seesHighGoal;
    private double xPixelOffsetHighGoal;
+   private double zPixelOffsetHighGoal;
    
    private boolean seesLift;
    private double xOffsetLift; //in mm
@@ -32,6 +33,9 @@ public class VisionState implements ITableListener, IRemoteConnectionListener {
       }
       if(key.equals("xPixelOffsetHighGoal")) {
          xPixelOffsetHighGoal = (double) value;
+      }
+      if(key.equals("zPixelOffsetHighGoal")){
+    	  zPixelOffsetHighGoal = (double) value;
       }
       if(key.equals("seesLift")) {
          seesLift = (boolean) value;
@@ -57,6 +61,10 @@ public class VisionState implements ITableListener, IRemoteConnectionListener {
 	
    public double getxPixelOffsetHighGoal() {
       return xPixelOffsetHighGoal;
+   }
+   
+   public double getzPixelOffsetHighGoal(){
+	   return zPixelOffsetHighGoal;
    }
    
    public boolean seesLift(){
