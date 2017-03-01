@@ -11,6 +11,8 @@ public class JoystickManager {
 	private boolean rightDPADIsToggled;
 	private boolean upDPADWasPressed;
 	private boolean upDPADIsToggled;
+	private boolean downDPADWasPressed;
+	private boolean downDPADIsToggled;
 	private boolean R3WasPressed;
 	private boolean R3IsToggled;
 	
@@ -23,9 +25,13 @@ public class JoystickManager {
 	public boolean isRightDPAD(){
 		return activeJoystick().getPOV(0) == 90;
 	}
-	
-	public boolean isUpDPAD(){
+
+	public boolean isUpDPAD() {
 		return activeJoystick().getPOV(0) == 0;
+	}
+	
+	public boolean isDownDPAD() {
+		return activeJoystick().getPOV(0) == 180;
 	}
 	
 	public boolean isR3(){
@@ -86,11 +92,4 @@ public class JoystickManager {
 		rightDPADWasPressed = false;
 	}
 
-	public boolean isUpDPAD() {
-		return activeJoystick().getPOV(0) == 0;
-	}
-	
-	public boolean isDownDPAD() {
-		return activeJoystick().getPOV(0) == 180;
-	}
 }
