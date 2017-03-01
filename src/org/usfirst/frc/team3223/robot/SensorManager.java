@@ -7,7 +7,13 @@ import edu.wpi.first.wpilibj.SPI;
 public class SensorManager {
 	private AHRS ahrs;
 	long currentTime; // ms
-	long previousTime; // ms
+	long previousTime;// ms
+	double XAccel;
+	double YAccel;
+	double ZAccel;
+	//double currentXAccel;
+	//double currentYAccel;
+	//double currentZAccel;
 	
 	public SensorManager() {
 		ahrs = new AHRS(SPI.Port.kMXP);
@@ -16,6 +22,10 @@ public class SensorManager {
 	public void tick() {
 		previousTime = currentTime;
 		currentTime = System.currentTimeMillis();
+		XAccel = ahrs.getWorldLinearAccelX();
+		YAccel = ahrs.getWorldLinearAccelY();
+		ZAccel = ahrs.getWorldLinearAccelZ();
+		
 	}
 	
 	/**
@@ -44,5 +54,25 @@ public class SensorManager {
 	 */
 	public double getAngularVelocity() {
 		return Math.toRadians(getDeltaAngle())/((currentTime-previousTime)/1000.000);
+	}
+	
+	/*public double getXJerk(){
+		return (currentXAccel-previousXAccel)/(currentTime-previousTime);
+	}
+	
+	public double getYJerk(){
+		return (currentYAccel-previousYAccel)/(currentTime-previousTime);
+	}*/
+	
+	public double getXAccel(){
+		return this.XAccel;
+	}
+	
+	public double getYAccel(){
+		return this.YAccel;
+	}
+	
+	public double getZAccel(){
+		return this.ZAccel;
 	}
 }

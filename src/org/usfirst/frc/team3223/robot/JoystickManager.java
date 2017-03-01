@@ -53,7 +53,11 @@ public class JoystickManager {
 	}
 	
 	public boolean isClimberButtonDepressed(){
-		return activeJoystick().getRawButton(10);
+		return activeJoystick().getRawButton(7);
+	}
+
+	public boolean isReverseClimberButtonDepressed(){
+		return activeJoystick().getRawButton(8);
 	}
 	
 	public void tick(){
@@ -80,5 +84,13 @@ public class JoystickManager {
 		this.getActiveJoystick = getActiveJoystick;
 		leftDPADWasPressed = false;
 		rightDPADWasPressed = false;
+	}
+
+	public boolean isUpDPAD() {
+		return activeJoystick().getPOV(0) == 0;
+	}
+	
+	public boolean isDownDPAD() {
+		return activeJoystick().getPOV(0) == 180;
 	}
 }
