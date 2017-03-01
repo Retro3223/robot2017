@@ -74,8 +74,9 @@ public class Robot extends IterativeRobot implements ITableListener {
 	private double highBump = 0.3;
 	private double highFactor = .5;
 	private boolean seesHighGoal = false;
-	private static final int HIGH_MAX_ZOFFSET = 0;
-	private int highZBounds = 5;
+	private static final int HIGH_MAX_ZOFFSET = 120;
+	private int highZBounds = 3;
+	private int highZFocus = 60;
 	private double highZBump = .15;
 	private double highZFactor = .4;
 	
@@ -304,17 +305,15 @@ public class Robot extends IterativeRobot implements ITableListener {
 			}
 		} else {
 			driveRobot(0, 0, 0);
-			mode = DriveState.GoHighGoal;
+			mode = DriveState.HumanDrive;
 		}
 	}
-	
-	private void goHighGoal()
-	{
-		if(seesHighGoal)
-		{
-			double transValue;
-			double pixels = visionState.getyPixelOffsetHighGoal();
-			if (pixels < highZBounds * -1 || pixels > highZBounds) {
+	private void goHighGoal(){
+		if (seesHighGoal) {
+			double transValue = 0;
+			double pixels = visionState.getzPixelOffsetHighGoal();
+			System.out.println(pixels);
+			if (pixels < (highZBounds*-1+highZFocus) || pixels > (highZBounds+highZFocus)) {
 				transValue = ((pixels / HIGH_MAX_ZOFFSET) * highZFactor);// Adjustable
 				if (transValue > 0) {
 					transValue += highZBump;// get over hump
@@ -323,19 +322,17 @@ public class Robot extends IterativeRobot implements ITableListener {
 				}
 
 				driveRobot(0, transValue, 0);
-				System.out.println(pixels);
-				SmartDashboard.putString("DB/String 2", "RV=" + transValue);
-				SmartDashboard.putString("DB/String 1", "PX=" + visionState.getxPixelOffsetHighGoal());
+
+				//SmartDashboard.putString("DB/String 2", "RV=" + rotationalValue);
+				//SmartDashboard.putString("DB/String 1", "PX=" + visionState.getxPixelOffsetHighGoal());
 			} else {
 				driveRobot(0, 0, 0);
-				mode = DriveState.GoHighGoal;
+				mode = DriveState.HumanDrive;
 				// perform high goal
 				// return control to teleop
 			}
-		}
-		else
-		{
-			driveRobot(0,0,0);
+		} else {
+			driveRobot(0, 0, 0);
 			mode = DriveState.HumanDrive;
 		}
 	}
