@@ -458,7 +458,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 			double transVal = 0;
 
 			if (seesLift) {
-				if (psiAngle > angleBounds || psiAngle < -1 * angleBounds)//rotational out of bounds
+				/*if (psiAngle > angleBounds || psiAngle < -1 * angleBounds)//rotational out of bounds
 				{
 					rotVal = psiAngle / LIFT_MAX_ANGLE * angleFactor;
 					if (rotVal > 0)
@@ -466,19 +466,19 @@ public class Robot extends IterativeRobot implements ITableListener {
 					else
 						rotVal -= angleBump;
 					outputRotValue = rotVal;
-				}
+				}*/
 				if (xOffset > transBounds || transBounds < -1*xOffset) //out of bounds
 				{	
-					/*if(xOffset>transBounds){
-						transVal = 0.27;
+					if(xOffset>transBounds){
+						transVal = 0.3;
 					}else{
-						transVal = -0.27;
-					}*/
-					transVal = xOffset / LIFT_MAX_XOFFSET * transFactor;
+						transVal = -0.3;
+					}
+					/*transVal = xOffset / LIFT_MAX_XOFFSET * transFactor;
 					if (transVal > 0)
 						transVal += transBump;
 					else
-						transVal -= transBump;
+						transVal -= transBump;*/
 					outputXTransValue = transVal;
 				}
 			
@@ -622,7 +622,8 @@ public class Robot extends IterativeRobot implements ITableListener {
 	@Override
 	public void autonomousInit() {
 		FarGearState = 1;
-		autoMode = AutonomousMode.Selecting;
+		//autoMode = AutonomousMode.Selecting;
+		autoMode = AutonomousMode.DashboardSelecting;
         startTime = System.currentTimeMillis();
 		isAuto = true;
 	}
@@ -653,7 +654,7 @@ public class Robot extends IterativeRobot implements ITableListener {
             }
             break;
 		case Forward:
-			translationalStateMachine.setInputDistance(15);
+			translationalStateMachine.setInputDistance(20);
 			translationalStateMachine.run();
 			if(translationalStateMachine.isDone()){
 				translationalStateMachine.reset();
@@ -768,7 +769,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 		
 		//move forward and cross baseline
 		if(FarGearState == 6){
-			translationalStateMachine.setInputDistance(10);
+			translationalStateMachine.setInputDistance(15);
 			translationalStateMachine.run();
 			if(translationalStateMachine.isDone()){
 				FarGearState = 7;
@@ -781,7 +782,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 	}
 
     private void turnLeft(double angle, int turnState, int finishState) {
-        angle = Math.abs(angle);
+        angle = -Math.abs(angle);
 		if(FarGearState == turnState){
 			turningStateMachine.setInputAngle(angle);
 			turningStateMachine.run();
@@ -793,7 +794,7 @@ public class Robot extends IterativeRobot implements ITableListener {
     }
 
     private void turnRight(double angle, int turnState, int finishState) {
-        angle = -Math.abs(angle);
+        angle = Math.abs(angle);
 		if(FarGearState == turnState){
 			turningStateMachine.setInputAngle(angle);
 			turningStateMachine.run();
@@ -806,7 +807,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 
 	private void approachLeftFarGear()
 	{
-        double angle = Math.toRadians(45);
+        double angle = Math.toRadians(40);
 		// Turn right X degrees when FarGearState == 1
         turnRight(angle, 1, 2);
 
@@ -822,7 +823,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 		
 		//move forward and cross baseline
 		if(FarGearState == 6){
-			translationalStateMachine.setInputDistance(10);
+			translationalStateMachine.setInputDistance(15);
 			translationalStateMachine.run();
 			if(translationalStateMachine.isDone()){
 				FarGearState = 7;
@@ -836,7 +837,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 
 	private void approachRightFarGear()
 	{
-        double angle = Math.toRadians(45);
+        double angle = Math.toRadians(40);
 		// Turn left X degrees
         turnLeft(angle, 1, 2);
 
@@ -852,7 +853,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 		
 		//move forward and cross baseline
 		if(FarGearState == 6){
-			translationalStateMachine.setInputDistance(10);
+			translationalStateMachine.setInputDistance(15);
 			translationalStateMachine.run();
 			if(translationalStateMachine.isDone()){
 				FarGearState = 7;
