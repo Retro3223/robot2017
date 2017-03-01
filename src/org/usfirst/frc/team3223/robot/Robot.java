@@ -81,9 +81,9 @@ public class Robot extends IterativeRobot implements ITableListener {
 	private boolean seesHighGoal = false;
 	private static final int HIGH_MAX_ZOFFSET = 120;
 	private int highZBounds = 3;
-	private int highZFocus = 60;
+	private int highZFocus = -60;
 	private double highZBump = .15;
-	private double highZFactor = .4;
+	private double highZFactor = .3;
 	
 	private static final int LIFT_MAX_ANGLE = 90;//will not change
 
@@ -393,7 +393,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 	private void goHighGoal(){
 		if (seesHighGoal) {
 			double transValue = 0;
-			double pixels = visionState.getzPixelOffsetHighGoal();
+			double pixels = visionState.getyPixelOffsetHighGoal();
 			System.out.println(pixels);
 			if (pixels < (highZBounds*-1+highZFocus) || pixels > (highZBounds+highZFocus)) {
 				transValue = ((pixels / HIGH_MAX_ZOFFSET) * highZFactor);// Adjustable
@@ -557,7 +557,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 	
 	private void shoot() {
 		//shooterSpeed = SmartDashboard.getNumber("DB/Slider 3", 0.0);
-		System.out.println(visionState.getzPixelOffsetHighGoal());
+		System.out.println(visionState.getyPixelOffsetHighGoal());
 		if (joystickManager.isShooterToggled()) {
 			isShooting = !isShooting;
 		}
