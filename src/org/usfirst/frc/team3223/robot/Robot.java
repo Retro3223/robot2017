@@ -60,6 +60,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 	private int currPilot = 0;
 	private int rumbleCount;
 	private boolean isInverted = false;
+    private int autoBegin = 0;
 	
 	private int FarGearState;
 	
@@ -669,6 +670,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 
 	@Override
 	public void autonomousInit() {
+        networkTable.putNumber("autonomousBegin", autoBegin++);
 		FarGearState = 1;
 		//autoMode = AutonomousMode.Selecting;
 		autoMode = AutonomousMode.DashboardSelecting;
