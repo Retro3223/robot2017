@@ -578,6 +578,34 @@ public class Robot extends IterativeRobot implements ITableListener {
 		}
 	}
 
+    // fuel can go throught to shooter
+    private void openTrapdoor() {
+        trapdoor_servo.setAngle(90);
+    }
+    
+    // fuel cannot go throught to shooter
+    private void closeTrapdoor() {
+        trapdoor_servo.setAngle(0);
+    }
+
+	private void shootAuto() {
+		if(isShooting){
+			shoot_motor.set(shooterSpeed);
+			//mixer_servo.setSpeed(.1);
+            if(System.currentTimeMillis()-lastOpened>=700){
+                openTrapdoor();
+                lastOpened = System.currentTimeMillis();
+            }
+            if(System.currentTimeMillis()-lastOpened>=350){
+                closeTrapdoor();
+            }
+		}
+		else{
+			shoot_motor.set(0);
+			//mixer_servo.set(.1);
+		}
+	}
+
 	private void intake(){
 		if(joystickManager.isIntakeToggled()){
 			if(joystickManager.isInverseIntakeToggled()){
@@ -610,26 +638,27 @@ public class Robot extends IterativeRobot implements ITableListener {
 		double rotation = 0;
 		
 		
-		x = activeJoystick().getRawAxis(0);// x of l stick
-		y = activeJoystick().getRawAxis(1);// y of l stick
+		x = -1*activeJoystick().getRawAxis(0);// x of l stick
+		y = -1*activeJoystick().getRawAxis(1);// y of l stick
 		if (Math.abs(x) <= .1)
 			x = 0;
 		if (Math.abs(y) <= .1)
 			y = 0;
+		
+		double rightX = -1*activeJoystick().getRawAxis(4);
+		double rightY = -1*activeJoystick().getRawAxis(5);
+		if (Math.abs(rightX) > .15 || Math.abs(rightY) > .15)
+		{
+			y = rightY/4;
+			x = rightX/4;
+		}
+		
 		if(joystickManager.isInvertToggled())
 			isInverted = !isInverted;
 		if(isInverted)
 		{
 			x *= -1;
 			y *= -1;
-		}
-		
-		double rightX = activeJoystick().getRawAxis(4);
-		double rightY = activeJoystick().getRawAxis(5);
-		if (Math.abs(rightX) > .15 || Math.abs(rightY) > .15)
-		{
-			y = rightY/4;
-			x = rightX/4;
 		}
 		
 		rotation = activeJoystick().getRawAxis(3) - activeJoystick().getRawAxis(2); // triggers:(right-left)turn
@@ -639,7 +668,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 			shoot_motor.set(0);
 		double angle = 0;
 		
-		masterDrive.mecanumDrive_Cartesian(x , y , (rotation) / 1.5, angle);
+		masterDrive.mecanumDrive_Cartesian(x , y , (rotation) / 1.4, angle);
 	}
 
 	public void driveRobot(double x, double y, double rotation) {
