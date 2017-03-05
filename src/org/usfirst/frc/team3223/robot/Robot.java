@@ -474,7 +474,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 		}
 		
 		if (seesLift&&isGearPosition) {
-			double xOffset = visionState.getxOffsetLift() + 370;// mm TODO xOffset on actual robot
+			double xOffset = visionState.getxOffsetLift() + 300f;// mm TODO xOffset on actual robot
 			double psiAngle = Math.toDegrees(visionState.getPsiLift());// rad ->
 																		// Degree
 			SmartDashboard.putString("DB/String 1", "xOff:" + xOffset);
@@ -592,12 +592,12 @@ public class Robot extends IterativeRobot implements ITableListener {
 	}
 	
 	private void climb(){
-		if(activeJoystick().getRawButton(7)){
+		if(joystickManager.isClimberButtonToggled()){
 			rope_motor.set(-.8);
 		}
 		else
 		{
-			if(activeJoystick().getRawButton(8))
+			if(joystickManager.isReverseClimberButtonToggled())
 				rope_motor.set(.8);
 			else
 			rope_motor.set(0);
@@ -610,26 +610,27 @@ public class Robot extends IterativeRobot implements ITableListener {
 		double rotation = 0;
 		
 		
-		x = activeJoystick().getRawAxis(0);// x of l stick
-		y = activeJoystick().getRawAxis(1);// y of l stick
+		x = -1*activeJoystick().getRawAxis(0);// x of l stick
+		y = -1*activeJoystick().getRawAxis(1);// y of l stick
 		if (Math.abs(x) <= .1)
 			x = 0;
 		if (Math.abs(y) <= .1)
 			y = 0;
+		
+		double rightX = -1*activeJoystick().getRawAxis(4);
+		double rightY = -1*activeJoystick().getRawAxis(5);
+		if (Math.abs(rightX) > .15 || Math.abs(rightY) > .15)
+		{
+			y = rightY/4;
+			x = rightX/4;
+		}
+		
 		if(joystickManager.isInvertToggled())
 			isInverted = !isInverted;
 		if(isInverted)
 		{
 			x *= -1;
 			y *= -1;
-		}
-		
-		double rightX = activeJoystick().getRawAxis(4);
-		double rightY = activeJoystick().getRawAxis(5);
-		if (Math.abs(rightX) > .15 || Math.abs(rightY) > .15)
-		{
-			y = rightY/4;
-			x = rightX/4;
 		}
 		
 		rotation = activeJoystick().getRawAxis(3) - activeJoystick().getRawAxis(2); // triggers:(right-left)turn
@@ -639,7 +640,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 			shoot_motor.set(0);
 		double angle = 0;
 		
-		masterDrive.mecanumDrive_Cartesian(x , y , (rotation) / 1.5, angle);
+		masterDrive.mecanumDrive_Cartesian(x , y , (rotation) / 1.4, angle);
 	}
 
 	public void driveRobot(double x, double y, double rotation) {
