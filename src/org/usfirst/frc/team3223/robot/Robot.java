@@ -78,7 +78,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 	private static final int HIGH_MAX_XOFFSET = 160;//will not change
 	private int highBounds = 3;//pixels
 	private double highBump = 0.3;//power to overcome
-	private double highFactor = .3;
+	private double highFactor = .2;
 	private boolean seesHighGoal = false;
 	private static final int HIGH_MAX_ZOFFSET = 120;
 	private int highZBounds = 3;
@@ -111,6 +111,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 	private RobotDrive masterDrive;
 	
 	private long startTime;
+	private int forwardLittleTimer;
 
 
 	/**
@@ -546,7 +547,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 			if(!isAuto){
 				mode = DriveState.HumanDrive;
 			}else{
-				autoMode = AutonomousMode.Finished;
+				autoMode = AutonomousMode.GoForwardALittle;
 			}
 		}
 	}
@@ -621,7 +622,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 	
 	private void climb(){
 		if(joystickManager.isClimberButtonToggled()){
-			rope_motor.set(-.8);
+			rope_motor.set(-1);
 		}
 		else
 		{
@@ -705,6 +706,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 		autoMode = AutonomousMode.DashboardSelecting;
         startTime = System.currentTimeMillis();
 		isAuto = true;
+		forwardLittleTimer = 20;
 	}
 
 	@Override
@@ -760,6 +762,17 @@ public class Robot extends IterativeRobot implements ITableListener {
 			break;
 		case Finished:
 			driveRobot(0, 0, 0);
+			break;
+		case GoForwardALittle:
+			if(forwardLittleTimer >= 0)
+			{
+				forwardLittleTimer--;
+			driveRobot(0,0.2,0);
+			}
+			else
+			{
+				autoMode = AutonomousMode.Finished;
+			}
 			break;
 		}
 		recorderContext.tick();
