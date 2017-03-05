@@ -705,7 +705,7 @@ public class Robot extends IterativeRobot implements ITableListener {
             }
             break;
 		case Forward:
-			translationalStateMachine.setInputDistance(20);
+			translationalStateMachine.setInputDistance(25);
 			translationalStateMachine.run();
 			if(translationalStateMachine.isDone()){
 				translationalStateMachine.reset();
@@ -713,7 +713,12 @@ public class Robot extends IterativeRobot implements ITableListener {
 			}
 			break;
 		case MiddleGear:
-			autoMode = AutonomousMode.FindLift;
+			translationalStateMachine.setInputDistance(20);
+			translationalStateMachine.run();
+			if(translationalStateMachine.isDone()){
+				translationalStateMachine.reset();
+				autoMode = AutonomousMode.FindLift;
+			}
 			break;
         case LeftFarGear:
 			approachLeftFarGear();
@@ -756,7 +761,7 @@ public class Robot extends IterativeRobot implements ITableListener {
     private void selectDashboardMode() {
         switch(selectedAutoMode) {
             case "middleGear":
-                autoMode = AutonomousMode.Forward;
+                autoMode = AutonomousMode.MiddleGear;
                 nextAutoMode = AutonomousMode.MiddleGear;
                 break;
             case "leftGear":
