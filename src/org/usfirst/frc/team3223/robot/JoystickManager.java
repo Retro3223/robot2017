@@ -15,6 +15,10 @@ public class JoystickManager {
 	private boolean downDPADIsToggled;
 	private boolean R3WasPressed;
 	private boolean R3IsToggled;
+	private boolean climberButtonWasPressed;
+	private boolean climberButtonToggled;
+	private boolean reverseClimberButtonWasPressed;
+	private boolean reverseClimberButtonToggled;
 	
 	private Supplier<Joystick> getActiveJoystick;
 	
@@ -61,9 +65,16 @@ public class JoystickManager {
 	public boolean isClimberButtonDepressed(){
 		return activeJoystick().getRawButton(7);
 	}
+	public boolean isClimberButtonToggled() {
+		return climberButtonToggled;
+	}
 
 	public boolean isReverseClimberButtonDepressed(){
 		return activeJoystick().getRawButton(8);
+	}
+	
+	public boolean isReverseClimberButtonToggled() {
+		return reverseClimberButtonToggled;
 	}
 	
 	public void tick(){
@@ -79,11 +90,20 @@ public class JoystickManager {
 		if(!R3WasPressed && isR3()){
 			R3IsToggled = !R3IsToggled;
 		}
+		
+		if(!climberButtonWasPressed && isClimberButtonDepressed()) {
+			climberButtonToggled = !climberButtonToggled;
+		}
+		if(!reverseClimberButtonWasPressed && isReverseClimberButtonDepressed()) {
+			reverseClimberButtonToggled = !reverseClimberButtonToggled;
+		}
 			
 		leftDPADWasPressed = isLeftDPAD();
 		rightDPADWasPressed = isRightDPAD();
 		upDPADWasPressed = isUpDPAD();
 		R3WasPressed = isR3();
+		climberButtonWasPressed = isClimberButtonDepressed();
+		reverseClimberButtonWasPressed = isReverseClimberButtonDepressed();
 	}
 	
 	public JoystickManager(Supplier<Joystick> getActiveJoystick){

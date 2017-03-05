@@ -474,7 +474,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 		}
 		
 		if (seesLift&&isGearPosition) {
-			double xOffset = visionState.getxOffsetLift() + 370;// mm TODO xOffset on actual robot
+			double xOffset = visionState.getxOffsetLift() + 300f;// mm TODO xOffset on actual robot
 			double psiAngle = Math.toDegrees(visionState.getPsiLift());// rad ->
 																		// Degree
 			SmartDashboard.putString("DB/String 1", "xOff:" + xOffset);
@@ -620,12 +620,12 @@ public class Robot extends IterativeRobot implements ITableListener {
 	}
 	
 	private void climb(){
-		if(activeJoystick().getRawButton(7)){
+		if(joystickManager.isClimberButtonToggled()){
 			rope_motor.set(-.8);
 		}
 		else
 		{
-			if(activeJoystick().getRawButton(8))
+			if(joystickManager.isReverseClimberButtonToggled())
 				rope_motor.set(.8);
 			else
 			rope_motor.set(0);
