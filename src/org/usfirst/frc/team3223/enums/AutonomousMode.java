@@ -7,5 +7,10 @@ public enum AutonomousMode {
 	FindLift,
 	GoLift,
 	Boiler,
-	Finished;
+	Finished,
+	LeftFarGear,
+	RightFarGear,
+	DashboardSelecting,
+	Forward,
+	GoForwardALittle;
 }
