@@ -17,7 +17,7 @@ public class TranslationalStateMachine {
 	
 	
 	public TranslationalStateMachine(Robot robot){
-		this.profiler = new RotationalProfiler(40, 10);
+		this.profiler = new RotationalProfiler(40, 40);
 		state = TranslationalState.Start;
 		this.robot = robot;
 		this.recorderContext = new RecorderContext("translationalstate");
