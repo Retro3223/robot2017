@@ -78,7 +78,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 	private static final int HIGH_MAX_XOFFSET = 160;//will not change
 	private int highBounds = 3;//pixels
 	private double highBump = 0.3;//power to overcome
-	private double highFactor = .3;
+	private double highFactor = .2;
 	private boolean seesHighGoal = false;
 	private static final int HIGH_MAX_ZOFFSET = 120;
 	private int highZBounds = 3;
@@ -111,6 +111,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 	private RobotDrive masterDrive;
 	
 	private long startTime;
+	private int forwardLittleTimer;
 
 
 	/**
@@ -546,7 +547,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 			if(!isAuto){
 				mode = DriveState.HumanDrive;
 			}else{
-				autoMode = AutonomousMode.Finished;
+				autoMode = AutonomousMode.GoForwardALittle;
 			}
 		}
 	}
@@ -578,6 +579,34 @@ public class Robot extends IterativeRobot implements ITableListener {
 		}
 	}
 
+    // fuel can go throught to shooter
+    private void openTrapdoor() {
+        trapdoor_servo.setAngle(90);
+    }
+    
+    // fuel cannot go throught to shooter
+    private void closeTrapdoor() {
+        trapdoor_servo.setAngle(0);
+    }
+
+	private void shootAuto() {
+		if(isShooting){
+			shoot_motor.set(shooterSpeed);
+			//mixer_servo.setSpeed(.1);
+            if(System.currentTimeMillis()-lastOpened>=700){
+                openTrapdoor();
+                lastOpened = System.currentTimeMillis();
+            }
+            if(System.currentTimeMillis()-lastOpened>=350){
+                closeTrapdoor();
+            }
+		}
+		else{
+			shoot_motor.set(0);
+			//mixer_servo.set(.1);
+		}
+	}
+
 	private void intake(){
 		if(joystickManager.isIntakeToggled()){
 			if(joystickManager.isInverseIntakeToggled()){
@@ -593,12 +622,12 @@ public class Robot extends IterativeRobot implements ITableListener {
 	
 	private void climb(){
 		if(joystickManager.isClimberButtonToggled()){
-			rope_motor.set(-.8);
+			rope_motor.set(-1);
 		}
 		else
 		{
 			if(joystickManager.isReverseClimberButtonToggled())
-				rope_motor.set(.8);
+				rope_motor.set(1);
 			else
 			rope_motor.set(0);
 		}
@@ -677,6 +706,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 		autoMode = AutonomousMode.DashboardSelecting;
         startTime = System.currentTimeMillis();
 		isAuto = true;
+		forwardLittleTimer = 20;
 	}
 
 	@Override
@@ -737,6 +767,17 @@ public class Robot extends IterativeRobot implements ITableListener {
 			break;
 		case Finished:
 			driveRobot(0, 0, 0);
+			break;
+		case GoForwardALittle:
+			if(forwardLittleTimer >= 0)
+			{
+				forwardLittleTimer--;
+			driveRobot(0,0.2,0);
+			}
+			else
+			{
+				autoMode = AutonomousMode.Finished;
+			}
 			break;
 		}
 		recorderContext.tick();
