@@ -621,15 +621,12 @@ public class Robot extends IterativeRobot implements ITableListener {
 	}
 	
 	private void climb(){
-		if(joystickManager.isClimberButtonToggled()){
+        if(joystickManager.isClimberButtonToggled()) {
 			rope_motor.set(-1);
-		}
-		else
-		{
-			if(joystickManager.isReverseClimberButtonToggled())
-				rope_motor.set(1);
-			else
-			rope_motor.set(0);
+		} else if(joystickManager.isReverseClimberButtonDepressed()) {
+            rope_motor.set(1);
+        } else {
+            rope_motor.set(0);
 		}
 	}
 	
