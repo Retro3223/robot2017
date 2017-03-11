@@ -55,10 +55,6 @@ public class Robot extends IterativeRobot implements ITableListener {
 	private AutonomousMode autoMode;
 	private AutonomousMode nextAutoMode = AutonomousMode.MiddleGear;
 	private String selectedAutoMode = "none";
-	boolean dPad = false;
-	private Joystick[] pilots = new Joystick[2];
-	private int currPilot = 0;
-	private int rumbleCount;
 	private boolean isInverted = false;
     private int autoBegin = 0;
 	
@@ -120,8 +116,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 	 */
 	public void robotInit() {
 		// Initialize all subsystems
-		pilots[0] = new Joystick(0);// 0 is joystick import port on driver panel
-		pilots[1] = new Joystick(1);
+		
 
         this.setupLogger();
 		
@@ -146,7 +141,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 		networkTable = NetworkTable.getTable("SmartDashboard");
 		networkTable.addTableListener(this, true);
 
-		joystickManager = new JoystickManager(()-> activeJoystick());
+		joystickManager = new JoystickManager();
 		visionState = new VisionState();
 		sensorManager = new SensorManager();
 		structurePosition = new Servo(STRUCTURE_PORT);
@@ -218,16 +213,13 @@ public class Robot extends IterativeRobot implements ITableListener {
 		getInput();
 		switch (mode) {
 		case HumanDrive:
-			if (activeJoystick().getRawButton(4)){
-				swapActiveJoystick();
+			if (joystickManager.swapJoystickButtonPressed()){
+				joystickManager.swapActiveJoystick();
 			}
 			driveHuman();
 			shoot();
 			intake();
 			climb();
-			//if(activeJoystick().getRawButton(10)) {
-			//	mode = DriveState.TurnLikeItsTuesday;
-			//}
 			break;
 		case FindHighGoal:
 			findHighGoal();
@@ -258,8 +250,6 @@ public class Robot extends IterativeRobot implements ITableListener {
 		networkTable.putNumber("Raw Count", encoder.getRaw());
 		networkTable.putNumber("Count", encoder.get());
 		networkTable.putNumber("Rate", encoder.getRate());
-		this.publishJoystickState();
-		this.publishTeleopJoystickControls();
 		networkTable.putBoolean("Sees Lift", visionState.seesLift());
 		networkTable.putNumber("xOffset Lift", visionState.getxOffsetLift());
 		networkTable.putBoolean("Sees High Goal", visionState.seesHighGoal());
@@ -274,48 +264,15 @@ public class Robot extends IterativeRobot implements ITableListener {
 		
 	}
 	
-	private void publishJoystickState() {
-		networkTable.putBoolean("Left DPAD Pressed", joystickManager.isLeftDPAD());
-		networkTable.putBoolean("Right DPAD Pressed", joystickManager.isRightDPAD());
-		networkTable.putBoolean("Up DPAD Pressed", joystickManager.isUpDPAD());
-		networkTable.putBoolean("Down DPAD Pressed", joystickManager.isDownDPAD());
-		networkTable.putBoolean("A Pressed", activeJoystick().getRawButton(1));
-		networkTable.putBoolean("B Pressed", activeJoystick().getRawButton(2));
-		networkTable.putBoolean("X Pressed", activeJoystick().getRawButton(3));
-		networkTable.putBoolean("Y Pressed", activeJoystick().getRawButton(4));
-		networkTable.putBoolean("Right Bumper Pressed", activeJoystick().getRawButton(6));
-		networkTable.putBoolean("Left Bumper Pressed", activeJoystick().getRawButton(5));
-		networkTable.putBoolean("Left Stick Pressed", activeJoystick().getRawButton(9));
-		networkTable.putBoolean("Right Stick Pressed", activeJoystick().getRawButton(10));
-		networkTable.putBoolean("Guide Pressed", activeJoystick().getRawButton(8));
-		networkTable.putBoolean("Back Pressed", activeJoystick().getRawButton(7));
-	}
-	
-	private void publishTeleopJoystickControls() {
-		networkTable.putString("Left DPAD Text", "Slurp fuel");
-		networkTable.putString("Right DPAD Text", "Eject fuel");
-		networkTable.putString("Up DPAD Text", "Shooter on");
-		networkTable.putString("Down DPAD Text", "Shooter off");
-		networkTable.putString("A Text", "Be human driven");
-		networkTable.putString("B Text", "Find high goal");
-		networkTable.putString("X Text", "Find lift");
-		networkTable.putString("Y Text", "Swap pilots");
-		networkTable.putString("Right Bumper Text", "Strafe right");
-		networkTable.putString("Left Bumper Text", "Strafe left");
-		networkTable.putString("Left Stick Text", "Drive");
-		networkTable.putString("Right Stick Text", "Eat sandwich");
-		networkTable.putString("Guide Text", "Climb (reverse direction)");
-		networkTable.putString("Back Text", "Climb");
-	}
 
 	private void getInput() {
-		if (activeJoystick().getRawButton(1)) {//A
+		if (joystickManager.humanDriveButtonPressed()) {
 			mode = DriveState.HumanDrive;
 		}
-		if (activeJoystick().getRawButton(2)) {//B
+		if (joystickManager.findHighGoalButtonPressed()) {
 			mode = DriveState.FindHighGoal;
 		}
-		if (activeJoystick().getRawButton(3)) {//X
+		if (joystickManager.findLiftButtonPressed()) {
 			mode = DriveState.FindLiftStart;
 		}
 		SmartDashboard.putString("DB/String 3", "Mode:" + mode);
@@ -325,27 +282,8 @@ public class Robot extends IterativeRobot implements ITableListener {
 		SmartDashboard.putBoolean("DB/Button 3", seesLift);
 	}
 	
-	private Joystick activeJoystick() {
-		return pilots[currPilot];
-	}
+	
 
-	private void swapActiveJoystick() {
-		if (rumbleCount == 0) {
-			pilots[(currPilot + 1) % 2].setRumble(GenericHID.RumbleType.kLeftRumble, 0);
-			pilots[(currPilot + 1) % 2].setRumble(GenericHID.RumbleType.kRightRumble, 0);
-		}
-		if (rumbleCount < 0) {
-			if (pilots[(currPilot + 1) % 2].getRawButton(4))// if not-pilot push 'y'
-			{
-				pilots[currPilot].setRumble(GenericHID.RumbleType.kLeftRumble, 1);
-				pilots[currPilot].setRumble(GenericHID.RumbleType.kRightRumble, 1);
-				currPilot = (currPilot + 1) % 2;// switch pilot
-				rumbleCount = 10;
-			}
-		} else {
-			rumbleCount--;
-		}
-	}
 
 	private void findHighGoal() {
 		double rotationalValue;
@@ -362,7 +300,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 		
 		
 
-		if (seesHighGoal&&isHighGoalPosition) {
+		if (seesHighGoal && isHighGoalPosition) {
 			double pixels = visionState.getxPixelOffsetHighGoal();
 			if (pixels < highBounds * -1 || pixels > highBounds) {
 				rotationalValue = ((pixels / HIGH_MAX_XOFFSET) * highFactor);// Adjustable
@@ -555,10 +493,10 @@ public class Robot extends IterativeRobot implements ITableListener {
 	private void shoot() {
 		//shooterSpeed = SmartDashboard.getNumber("DB/Slider 3", 0.0);
 		System.out.println(visionState.getyPixelOffsetHighGoal());
-		if (activeJoystick().getPOV(0) == 0) {
+		if (joystickManager.shootButtonPressed()) {
 			isShooting = true;
 		}
-		if (activeJoystick().getPOV(0) == 180) {
+		if (joystickManager.noShootButtonPressed()) {
 			isShooting = false;
 		}
 
@@ -570,7 +508,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 			shoot_motor.set(0);
 			//mixer_servo.set(.1);
 		}
-		if (activeJoystick().getRawButton(6)){
+		if (joystickManager.openTrapdoorButtonPressed()){
 			trapdoor_servo.setAngle(90);
 			lastOpened = System.currentTimeMillis();
 		}
@@ -635,38 +573,41 @@ public class Robot extends IterativeRobot implements ITableListener {
 		double y = 0;
 		double rotation = 0;
 		
-		
-		x = -1*activeJoystick().getRawAxis(0);// x of l stick
-		y = -1*activeJoystick().getRawAxis(1);// y of l stick
-		if (Math.abs(x) <= .1)
+		x = -joystickManager.activeJoystick().getRawAxis(0);// x of l stick
+		y = -joystickManager.activeJoystick().getRawAxis(1);// y of l stick
+		if (Math.abs(x) <= .1) {
 			x = 0;
-		if (Math.abs(y) <= .1)
+        }
+
+		if (Math.abs(y) <= .1) {
 			y = 0;
+        }
 		
-		double rightX = -1*activeJoystick().getRawAxis(4);
-		double rightY = -1*activeJoystick().getRawAxis(5);
-		if (Math.abs(rightX) > .15 || Math.abs(rightY) > .15)
-		{
-			y = rightY/4;
-			x = rightX/4;
+		double rightX = -joystickManager.activeJoystick().getRawAxis(4);
+		double rightY = -joystickManager.activeJoystick().getRawAxis(5);
+		if (Math.abs(rightX) > .15 || Math.abs(rightY) > .15) {
+			y = rightY / 4;
+			x = rightX / 4;
 		}
 		
-		if(joystickManager.isInvertToggled())
+		if(joystickManager.isInvertToggled()) {
 			isInverted = !isInverted;
-		if(isInverted)
-		{
+        }
+
+		if(isInverted) {
 			x *= -1;
 			y *= -1;
 		}
 		
-		rotation = activeJoystick().getRawAxis(3) - activeJoystick().getRawAxis(2); // triggers:(right-left)turn
-		if (Math.abs(rotation) <= .1)
+		rotation = joystickManager.activeJoystick().getRawAxis(3) - joystickManager.activeJoystick().getRawAxis(2); // triggers:(right-left)turn
+		if (Math.abs(rotation) <= .1) {
 			rotation = 0;
-		if(x!=0||y!=0||rotation!=0)
+        }
+		if(x != 0 || y != 0 || rotation != 0) {
 			shoot_motor.set(0);
-		double angle = 0;
+        }
 		
-		masterDrive.mecanumDrive_Cartesian(x , y , (rotation) / 1.4, angle);
+		masterDrive.mecanumDrive_Cartesian(x , y , (rotation) / 1.4, 0);
 	}
 
 	public void driveRobot(double x, double y, double rotation) {
@@ -699,7 +640,6 @@ public class Robot extends IterativeRobot implements ITableListener {
 	public void autonomousInit() {
         networkTable.putNumber("autonomousBegin", autoBegin++);
 		FarGearState = 1;
-		//autoMode = AutonomousMode.Selecting;
 		autoMode = AutonomousMode.DashboardSelecting;
         startTime = System.currentTimeMillis();
 		isAuto = true;
