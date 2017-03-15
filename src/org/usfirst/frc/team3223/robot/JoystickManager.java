@@ -10,16 +10,6 @@ public class JoystickManager {
 	private Joystick[] pilots = new Joystick[2];
 	private int currPilot = 0;
 	private int rumbleCount;
-	private boolean leftDPADWasPressed;
-	private boolean leftDPADIsToggled;
-	private boolean rightDPADWasPressed;
-	private boolean rightDPADIsToggled;
-	private boolean upDPADWasPressed;
-	private boolean upDPADIsToggled;
-	private boolean downDPADWasPressed;
-	private boolean downDPADIsToggled;
-	private boolean R3WasPressed;
-	private boolean R3IsToggled;
 	private boolean climberButtonWasPressed;
 	private boolean climberButtonToggled;
 	private boolean reverseClimberButtonWasPressed;
@@ -29,8 +19,6 @@ public class JoystickManager {
 		pilots[0] = new Joystick(0);// 0 is joystick import port on driver panel
 		pilots[1] = new Joystick(1);
 		networkTable = NetworkTable.getTable("SmartDashboard");
-		leftDPADWasPressed = false;
-		rightDPADWasPressed = false;
 	}
 	
 	public Joystick activeJoystick() {
@@ -91,22 +79,6 @@ public class JoystickManager {
 		return activeJoystick().getRawButton(10);
 	}
 	
-	public boolean isIntakeToggled(){
-		return leftDPADIsToggled;
-	}
-	
-	public boolean isInverseIntakeToggled(){
-		return rightDPADIsToggled;
-	}
-	
-	public boolean isInvertToggled(){
-		return R3IsToggled;
-	}
-	
-	public boolean isShooterToggled(){
-		return upDPADIsToggled;
-	}
-	
 	public boolean isClimberButtonDepressed(){
 		return activeJoystick().getRawButton(7);
 	}
@@ -151,7 +123,7 @@ public class JoystickManager {
     }
 
 	public void swapActiveJoystick() {
-		if (rumbleCount == 0) {
+		if (rumbleCount >= 0) {
 			pilots[(currPilot + 1) % 2].setRumble(GenericHID.RumbleType.kLeftRumble, 0);
 			pilots[(currPilot + 1) % 2].setRumble(GenericHID.RumbleType.kRightRumble, 0);
 		}
@@ -169,19 +141,6 @@ public class JoystickManager {
 	}
 	
 	public void tick() {
-		if(!leftDPADWasPressed && isLeftDPAD()){
-			leftDPADIsToggled = !leftDPADIsToggled;
-		}
-		if(!rightDPADWasPressed && isRightDPAD()){
-			rightDPADIsToggled = !rightDPADIsToggled;
-		}
-		if(!upDPADWasPressed && isUpDPAD()){
-			upDPADIsToggled = !upDPADIsToggled;
-		}
-		if(!R3WasPressed && isR3()){
-			R3IsToggled = !R3IsToggled;
-		}
-		
 		if(!climberButtonWasPressed && isClimberButtonDepressed()) {
 			climberButtonToggled = !climberButtonToggled;
 		}
@@ -189,10 +148,6 @@ public class JoystickManager {
 			reverseClimberButtonToggled = !reverseClimberButtonToggled;
 		}
 			
-		leftDPADWasPressed = isLeftDPAD();
-		rightDPADWasPressed = isRightDPAD();
-		upDPADWasPressed = isUpDPAD();
-		R3WasPressed = isR3();
 		climberButtonWasPressed = isClimberButtonDepressed();
 		reverseClimberButtonWasPressed = isReverseClimberButtonDepressed();
 
