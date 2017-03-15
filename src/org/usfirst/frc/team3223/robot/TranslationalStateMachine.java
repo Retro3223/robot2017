@@ -55,7 +55,7 @@ public class TranslationalStateMachine {
 			timeDelta = currentTime-startTime;
 			velocity = profiler.getVelocity(timeDelta);
 			voltage = velocity*.025;
-			robot.driveRobot(0, voltage, 0);
+			robot.driveRobot(0, -voltage, 0);
 			if(profiler.isDone(timeDelta)){
 				state = TranslationalState.End;
 			}

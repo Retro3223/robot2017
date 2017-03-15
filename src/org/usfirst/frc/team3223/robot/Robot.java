@@ -273,7 +273,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 	private void findLift() {
 		
 		if (seesLift) {
-			double xOffset = visionState.getxOffsetLift() + 300f;// mm TODO xOffset on actual robot
+			double xOffset = visionState.getxOffsetLift() + -10f;// mm TODO xOffset on actual robot
 			double psiAngle = Math.toDegrees(visionState.getPsiLift());// rad ->
 																		// Degree
 			SmartDashboard.putString("DB/String 1", "xOff:" + xOffset);
@@ -303,9 +303,9 @@ public class Robot extends IterativeRobot implements ITableListener {
 				if (xOffset > transBounds || transBounds < -1*xOffset) //out of bounds
 				{	
 					if(xOffset>transBounds){
-						transVal = 0.3;
-					}else{
 						transVal = -0.3;
+					}else{
+						transVal = 0.3;
 					}
 					/*transVal = xOffset / LIFT_MAX_XOFFSET * transFactor;
 					if (transVal > 0)
@@ -339,7 +339,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 	}
 
 	private void goLift() {
-		driveRobot(0, 0.3, 0);
+		driveRobot(0, -0.3, 0);
 		if(sensorManager.getYAccel()>1){
 			driveRobot(0,0,0);
 			if(!isAuto){
@@ -432,9 +432,9 @@ public class Robot extends IterativeRobot implements ITableListener {
 		SmartDashboard.putString("DB/String 0", "State:" + FarGearState);
 		SmartDashboard.putString("DB/String 1", "Sees Lift:" + seesLift);
 		seesLift = visionState.seesLift();
-		intake_motor.set(0);
+		//intake_motor.set(0);
 		rope_motor.set(0);
-		shoot_motor.set(0);
+		//shoot_motor.set(0);
 		switch (autoMode) {
 		case Selecting:
 			translationalStateMachine.setInputDistance(15);
