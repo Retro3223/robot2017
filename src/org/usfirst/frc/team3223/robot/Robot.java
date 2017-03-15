@@ -65,7 +65,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 	private double intakeSpeed = .85;
 
 
-	private static final int F_L_PORT = 6, F_R_PORT = 4, B_L_PORT = 0, B_R_PORT = 3, SHOOT_PORT = 2, ROPE_PORT = 1, INTAKE_PORT = 5, TRAPDOOR_PORT = 7, STRUCTURE_PORT=8;
+	private static final int F_L_PORT = 2, F_R_PORT = 3, B_L_PORT = 0, B_R_PORT = 1, SHOOT_PORT = 2, ROPE_PORT = 4, INTAKE_PORT = 5, TRAPDOOR_PORT = 7, STRUCTURE_PORT=8;
 
 	private SpeedController fore_left_motor, fore_right_motor, back_left_motor, back_right_motor, shoot_motor, rope_motor, intake_motor;
 	private Encoder encoder;
