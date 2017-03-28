@@ -273,7 +273,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 	private void findLift() {
 		
 		if (seesLift) {
-			double xOffset = visionState.getxOffsetLift() + -10f;// mm TODO xOffset on actual robot
+			double xOffset = visionState.getxOffsetLift() + -15f;// mm TODO xOffset on actual robot
 			double psiAngle = Math.toDegrees(visionState.getPsiLift());// rad ->
 																		// Degree
 			SmartDashboard.putString("DB/String 1", "xOff:" + xOffset);
@@ -380,7 +380,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 		double rightY = joystickManager.activeJoystick().getRawAxis(5);
 		if (Math.abs(rightX) > .15 || Math.abs(rightY) > .15) {
 			y = rightY / 3;
-			x = rightX / 3;
+			x = rightX / 2.5;
 		}
 		
 		rotation = joystickManager.activeJoystick().getRawAxis(3) - joystickManager.activeJoystick().getRawAxis(2); // triggers:(right-left)turn
@@ -620,7 +620,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 
 	private void approachLeftFarGear()
 	{
-        double angle = Math.toRadians(40);
+        double angle = Math.toRadians(45);
 		// Turn right X degrees when FarGearState == 1
         turnRight(angle, 1, 2);
 
@@ -650,7 +650,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 
 	private void approachRightFarGear()
 	{
-        double angle = Math.toRadians(40);
+        double angle = Math.toRadians(45);
 		// Turn left X degrees
         turnLeft(angle, 1, 2);
 
