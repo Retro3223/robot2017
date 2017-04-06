@@ -10,7 +10,7 @@ package org.usfirst.frc.team3223.robot;
 import edu.wpi.first.wpilibj.IterativeRobot;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.SpeedController;
-import edu.wpi.first.wpilibj.Talon;
+import edu.wpi.first.wpilibj.VictorSP;
 import edu.wpi.first.wpilibj.TalonSRX;
 import edu.wpi.first.wpilibj.RobotDrive;
 import edu.wpi.first.wpilibj.Servo;
@@ -47,6 +47,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 	private AutonomousMode autoMode;
 	private AutonomousMode nextAutoMode = AutonomousMode.MiddleGear;
 	private String selectedAutoMode = "none";
+	private String robotMode = "none";
     private int autoBegin = 0;
 	
 	private int FarGearState;
@@ -107,7 +108,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 
 		masterDrive = new RobotDrive(fore_left_motor, back_left_motor, fore_right_motor, back_right_motor);
 
-		rope_motor = new Talon(ROPE_PORT);
+		rope_motor = new VictorSP(ROPE_PORT);
 
 		networkTable = NetworkTable.getTable("SmartDashboard");
 		networkTable.addTableListener(this, true);
@@ -144,6 +145,8 @@ public class Robot extends IterativeRobot implements ITableListener {
     private void setupLogger() {
 		recorderContext = new RecorderContext("lift");
 		recorderContext.add("seesLift", () -> seesLift);
+		recorderContext.add("robotMode", () -> robotMode);
+		recorderContext.add("dashboardMode", () -> selectedAutoMode);
 		recorderContext.add("mode", () -> mode.toString());
 		recorderContext.add("rotVal", () -> outputRotValue);
 		recorderContext.add("xtransVal", () -> outputXTransValue);
@@ -154,7 +157,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 		recorderContext.add("psi", () -> visionState.getPsiLift());
 		recorderContext.add("angleBounds", () -> angleBounds);
 		recorderContext.add("angleFactor", () -> angleFactor);
-		recorderContext.add("auto Mode", () -> autoMode == null ? 7 : autoMode.toString());
+		recorderContext.add("auto Mode", () -> autoMode == null ? "null" : autoMode.toString());
 		recorderContext.add("FarGearState", () -> FarGearState);
 		recorderContext.add("heading", () -> sensorManager.getAngle());
 		recorderContext.add("fore_left_voltage", () -> fore_left_motor.get());
@@ -169,6 +172,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 	
 	public void teleopInit() {
 		isAuto = false;
+		robotMode = "teleop";
 	}
 
 	/**
@@ -279,40 +283,18 @@ public class Robot extends IterativeRobot implements ITableListener {
 																		// Degree
 			SmartDashboard.putString("DB/String 1", "xOff:" + xOffset);
 			SmartDashboard.putString("DB/String 2", "psi:" + psiAngle);
-			
-			/*angleBounds = Double.parseDouble(SmartDashboard.getString("DB/String 5", "10"));
-			angleBump = Double.parseDouble(SmartDashboard.getString("DB/String 6", ".1"));
-			angleFactor = Double.parseDouble(SmartDashboard.getString("DB/String 7", ".4"));
-
-			transBounds = SmartDashboard.getNumber("DB/Slider 0", 10);
-			transBump = SmartDashboard.getNumber("DB/Slider 1", .4);
-			transFactor = SmartDashboard.getNumber("DB/Slider 2", .1);*/
 
 			double rotVal = 0;
 			double transVal = 0;
 
 			if (seesLift) {
-				/*if (psiAngle > angleBounds || psiAngle < -1 * angleBounds)//rotational out of bounds
-				{
-					rotVal = psiAngle / LIFT_MAX_ANGLE * angleFactor;
-					if (rotVal > 0)
-						rotVal += angleBump;
-					else
-						rotVal -= angleBump;
-					outputRotValue = rotVal;
-				}*/
 				if (xOffset > transBounds || transBounds < -1*xOffset) //out of bounds
 				{	
 					if(xOffset>transBounds){
-						transVal = -0.3;
+						transVal = -0.35;
 					}else{
-						transVal = 0.3;
+						transVal = 0.35;
 					}
-					/*transVal = xOffset / LIFT_MAX_XOFFSET * transFactor;
-					if (transVal > 0)
-						transVal += transBump;
-					else
-						transVal -= transBump;*/
 					outputXTransValue = transVal;
 				}
 			
@@ -409,13 +391,19 @@ public class Robot extends IterativeRobot implements ITableListener {
 			turningStateMachine.run();
 		}
 	}
-
+	public void testInit() {
+		robotMode = "test";
+		FarGearState = 1;
+	}
 	/**
 	 * This function is called periodically during test mode
 	 */
 	@Override
 	public void testPeriodic() {
-		findLift();
+		turnRight(45, 1, 2);
+		if(FarGearState == 2) {
+			driveRobot(0, 0, 0);
+		}
 	}
 
 	@Override
@@ -426,6 +414,7 @@ public class Robot extends IterativeRobot implements ITableListener {
         startTime = System.currentTimeMillis();
 		isAuto = true;
 		forwardLittleTimer = 20;
+		robotMode = "auto";
 	}
 
 	@Override
@@ -454,7 +443,7 @@ public class Robot extends IterativeRobot implements ITableListener {
             }
             break;
 		case Forward:
-			translationalStateMachine.setInputDistance(25);
+			translationalStateMachine.setInputDistance(23);
 			translationalStateMachine.run();
 			if(translationalStateMachine.isDone()){
 				translationalStateMachine.reset();
