@@ -10,7 +10,7 @@ import java.util.stream.Collectors;
 // thieverized from blackbox
 public class RecorderContext {
   private String name;
-  private LinkedHashMap<String, Supplier<Number>> value_suppliers;
+  private LinkedHashMap<String, Supplier<Object>> value_suppliers;
   boolean started = false;
   File target_file;
   FileOutputStream file_out;
@@ -43,7 +43,7 @@ public class RecorderContext {
    * @param supplier_name The name of the supplier. This may not contain commas.
    * @param value_supplier The supplier to get the Number value from.
    */
-  public void add(String supplier_name, Supplier<Number> value_supplier) {
+  public void add(String supplier_name, Supplier<Object> value_supplier) {
     if (started)
       throw new IllegalStateException("Cannot add Suppliers after the Context has started!");
     this.value_suppliers.put(supplier_name, value_supplier);

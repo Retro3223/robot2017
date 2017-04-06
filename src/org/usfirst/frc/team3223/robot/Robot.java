@@ -143,8 +143,8 @@ public class Robot extends IterativeRobot implements ITableListener {
 
     private void setupLogger() {
 		recorderContext = new RecorderContext("lift");
-		recorderContext.add("seesLift", () -> seesLift ? 1 : 0);
-		recorderContext.add("mode", () -> mode.ordinal());
+		recorderContext.add("seesLift", () -> seesLift);
+		recorderContext.add("mode", () -> mode.toString());
 		recorderContext.add("rotVal", () -> outputRotValue);
 		recorderContext.add("xtransVal", () -> outputXTransValue);
 		recorderContext.add("ytransVal", () -> outputYTransValue);
@@ -154,7 +154,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 		recorderContext.add("psi", () -> visionState.getPsiLift());
 		recorderContext.add("angleBounds", () -> angleBounds);
 		recorderContext.add("angleFactor", () -> angleFactor);
-		recorderContext.add("auto Mode", () -> autoMode == null ? 7 : autoMode.ordinal());
+		recorderContext.add("auto Mode", () -> autoMode == null ? 7 : autoMode.toString());
 		recorderContext.add("FarGearState", () -> FarGearState);
 		recorderContext.add("heading", () -> sensorManager.getAngle());
 		recorderContext.add("fore_left_voltage", () -> fore_left_motor.get());
@@ -187,7 +187,8 @@ public class Robot extends IterativeRobot implements ITableListener {
 			findLift();
 			break;
 		case FindLiftContinue:
-			goLift();
+			//goLift();
+			mode = DriveState.HumanDrive;
 			break;
 		}
 		
@@ -414,7 +415,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 	 */
 	@Override
 	public void testPeriodic() {
-
+		findLift();
 	}
 
 	@Override
@@ -497,6 +498,9 @@ public class Robot extends IterativeRobot implements ITableListener {
 				autoMode = AutonomousMode.Finished;
 			}
 			break;
+		case NoVision:
+			noVision();
+			break;
 		}
 		recorderContext.tick();
 		sensorManager.tick();
@@ -529,13 +533,31 @@ public class Robot extends IterativeRobot implements ITableListener {
                 autoMode = AutonomousMode.Forward;
                 nextAutoMode = AutonomousMode.RightFarGear;
                 break;
+            case "noVision":
+            	autoMode = AutonomousMode.NoVision;
+            	nextAutoMode = AutonomousMode.NoVision;
             default:
                 autoMode = AutonomousMode.Finished;
         }
     }
 	
-	//figures out which side we are on, if it cannot find a lift, goes forward and returns control to human
-	private void approachFarGear()
+	
+    private void noVision(){
+    	translationalStateMachine.setInputDistance(40);
+    	translationalStateMachine.run();
+    	if(translationalStateMachine.isDone()){
+    		translationalStateMachine.reset();
+    		autoMode = AutonomousMode.Finished;
+    	}
+    }
+    
+    
+    
+    //figures out which side we are on, if it cannot find a lift, goes forward and returns control to human
+	
+    
+    
+    private void approachFarGear()
 	{
 		// Turn right 30 degrees
 		if(FarGearState == 1){

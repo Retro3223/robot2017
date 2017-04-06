@@ -12,5 +12,6 @@ public enum AutonomousMode {
 	RightFarGear,
 	DashboardSelecting,
 	Forward,
-	GoForwardALittle;
+	GoForwardALittle,
+	NoVision;
 }
