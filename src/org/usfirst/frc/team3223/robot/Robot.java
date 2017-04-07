@@ -83,6 +83,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 	private VisionState visionState;
 	private RecorderContext recorderContext;
 	private RobotDrive masterDrive;
+	private Strafage strafage;
 	
 	private long startTime;
 	private int forwardLittleTimer;
@@ -96,7 +97,6 @@ public class Robot extends IterativeRobot implements ITableListener {
 		// Initialize all subsystems
 		
 
-        this.setupLogger();
 				
 		fore_left_motor = new TalonSRX(F_L_PORT);
 		fore_right_motor = new TalonSRX(F_R_PORT);
@@ -125,8 +125,13 @@ public class Robot extends IterativeRobot implements ITableListener {
 			back_right_motor.set(-v);
 		});
 		translationalStateMachine = new TranslationalStateMachine(this);
-		this.encoder = new Encoder(0, 1, false, Encoder.EncodingType.k4X);
+		this.encoder = new Encoder(1, 2, false, Encoder.EncodingType.k4X);
+		this.strafage = new Strafage(this.encoder, () -> FarGearState, (Integer i) -> {
+			FarGearState = i;
+		});
 		
+
+        this.setupLogger();
 		// instantiate the command used for the autonomous period
 
 		// Show what command your subsystem is running on the SmartDashboard
@@ -167,6 +172,8 @@ public class Robot extends IterativeRobot implements ITableListener {
 		recorderContext.add("X Acceleration", () -> sensorManager.getXAccel());
 		recorderContext.add("Y Acceleration", () -> sensorManager.getYAccel());
 		recorderContext.add("Z Acceleration", () -> sensorManager.getZAccel());
+		
+		strafage.setupLogging(recorderContext);
     }
 
 	
@@ -214,6 +221,8 @@ public class Robot extends IterativeRobot implements ITableListener {
 		networkTable.putNumber("XAccel", sensorManager.XAccel);
 		networkTable.putNumber("YAccel", sensorManager.YAccel);
 		networkTable.putNumber("ZAccel", sensorManager.ZAccel);
+		networkTable.putNumber("encoder distance", encoder.getDistance());
+		networkTable.putNumber("encoder thing", encoder.getRate());
 		recorderContext.tick();
 		publishAutoMode();
 		
@@ -276,8 +285,26 @@ public class Robot extends IterativeRobot implements ITableListener {
 		return output;
 	}
 	
-	private void findLift() {
+	private void findLift2() {
+		if(seesLift) {
+			strafage.setDistance(-visionState.getxOffsetLift());
+		}
+		strafage.strafe(this, 20, 21);
 		
+		if(FarGearState == 21) {
+			if(isAuto) {
+				autoMode = AutonomousMode.GoLift;
+			}else{
+				mode = DriveState.FindLiftContinue;
+			}
+		}
+	}
+	
+	private void findLift3() {
+		//if()
+	}
+	
+	private void findLift() {
 		if (seesLift) {
 			double xOffset = visionState.getxOffsetLift() + -15f;// mm TODO xOffset on actual robot
 			double psiAngle = Math.toDegrees(visionState.getPsiLift());// rad ->
@@ -394,17 +421,31 @@ public class Robot extends IterativeRobot implements ITableListener {
 	}
 	public void testInit() {
 		robotMode = "test";
-		FarGearState = 1;
+		FarGearState = 20;
+		strafage.reset();
+		strafage.setDistance(500);
+		dozup = false;
 	}
 	/**
 	 * This function is called periodically during test mode
 	 */
+	boolean dozup;
 	@Override
 	public void testPeriodic() {
-		turnRight(45, 1, 2);
-		if(FarGearState == 2) {
-			driveRobot(0, 0, 0);
+		seesLift = visionState.seesLift();
+		if(!dozup && visionState.seesLift()) {
+			dozup= true;
 		}
+		if(!dozup) {
+			driveRobot(0,0,0);
+		}
+		if(dozup) {
+			findLift2();
+		}
+
+		networkTable.putNumber("encoder distance (mm)", encoder.getDistance());
+		networkTable.putNumber("encoder distance (in)", encoder.getDistance() / 25.4);
+		recorderContext.tick();
 	}
 	
 	private void publishAutoMode() {
@@ -535,6 +576,8 @@ public class Robot extends IterativeRobot implements ITableListener {
             case "noVision":
             	autoMode = AutonomousMode.NoVision;
             	nextAutoMode = AutonomousMode.NoVision;
+            	break;
+            	
             default:
                 autoMode = AutonomousMode.Finished;
         }
@@ -542,12 +585,12 @@ public class Robot extends IterativeRobot implements ITableListener {
 	
 	
     private void noVision(){
-    	translationalStateMachine.setInputDistance(40);
-    	translationalStateMachine.run();
-    	if(translationalStateMachine.isDone()){
-    		translationalStateMachine.reset();
-    		autoMode = AutonomousMode.Finished;
-    	}
+    	translationalStateMachine.setInputDistance(20);
+		translationalStateMachine.run();
+		if(translationalStateMachine.isDone()){
+			translationalStateMachine.reset();
+			autoMode = AutonomousMode.GoLift;
+		}
     }
     
     
@@ -570,6 +613,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 		}
 		// Check to see Lift, if not switch to turn other way
 		if(visionState.seesLift()&&FarGearState == 2){
+			FarGearState = 20;
 			autoMode = AutonomousMode.FindLift;
 		}else if(!visionState.seesLift()&&FarGearState == 2){
 			FarGearState = 3;
@@ -587,6 +631,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 			
 		//Check to see lift, if not cross baseline
 		if(visionState.seesLift() && FarGearState==4){
+			FarGearState = 20;
 				autoMode = AutonomousMode.FindLift;
 		} else if(!visionState.seesLift()&&FarGearState == 4){
 			FarGearState = 5;
@@ -647,6 +692,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 
 		// Check to see Lift, if not turn to face straight ahead
 		if(visionState.seesLift()&&FarGearState == 2){
+			FarGearState = 20;
 			autoMode = AutonomousMode.FindLift;
 		}else if(!visionState.seesLift()&&FarGearState == 2){
 			FarGearState = 5;
@@ -677,6 +723,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 
 		// Check to see Lift, if not turn to face straight ahead
 		if(visionState.seesLift()&&FarGearState == 2){
+			FarGearState = 20;
 			autoMode = AutonomousMode.FindLift;
 		}else if(!visionState.seesLift()&&FarGearState == 2){
 			FarGearState = 5;
