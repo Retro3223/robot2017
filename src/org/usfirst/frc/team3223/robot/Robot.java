@@ -46,7 +46,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 	private DriveState mode = DriveState.HumanDrive;
 	private AutonomousMode autoMode;
 	private AutonomousMode nextAutoMode = AutonomousMode.MiddleGear;
-	private String selectedAutoMode = "none";
+	private String selectedAutoMode = "middleGear";
 	private String robotMode = "none";
     private int autoBegin = 0;
 	
@@ -215,6 +215,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 		networkTable.putNumber("YAccel", sensorManager.YAccel);
 		networkTable.putNumber("ZAccel", sensorManager.ZAccel);
 		recorderContext.tick();
+		publishAutoMode();
 		
 	}
 	
@@ -405,6 +406,14 @@ public class Robot extends IterativeRobot implements ITableListener {
 			driveRobot(0, 0, 0);
 		}
 	}
+	
+	private void publishAutoMode() {
+		SmartDashboard.putString("javaAutoMode", selectedAutoMode);
+	}
+	@Override
+	public void disabledPeriodic() {
+		publishAutoMode();
+	}
 
 	@Override
 	public void autonomousInit() {
@@ -494,6 +503,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 		recorderContext.tick();
 		sensorManager.tick();
 		networkTable.putBoolean("Sees Lift", visionState.seesLift());
+		publishAutoMode();
 	}
 	
 	//selects either middle lift or far lift
