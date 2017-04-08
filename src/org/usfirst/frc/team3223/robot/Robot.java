@@ -149,13 +149,10 @@ public class Robot extends IterativeRobot implements ITableListener {
 
     private void setupLogger() {
 		recorderContext = new RecorderContext("lift");
-		recorderContext.add("seesLift", () -> seesLift);
+		recorderContext.add("mode", () -> mode.toString());
 		recorderContext.add("robotMode", () -> robotMode);
 		recorderContext.add("dashboardMode", () -> selectedAutoMode);
-		recorderContext.add("mode", () -> mode.toString());
-		recorderContext.add("rotVal", () -> outputRotValue);
-		recorderContext.add("xtransVal", () -> outputXTransValue);
-		recorderContext.add("ytransVal", () -> outputYTransValue);
+		recorderContext.add("seesLift", () -> seesLift);
 		recorderContext.add("xOffset", () -> visionState.getxOffsetLift());
 		recorderContext.add("zOffset", () -> visionState.getzOffsetLift());
 		recorderContext.add("theta", () -> visionState.getThetaLift());
