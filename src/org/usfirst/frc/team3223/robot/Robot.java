@@ -443,6 +443,9 @@ public class Robot extends IterativeRobot implements ITableListener {
 
 		networkTable.putNumber("encoder distance (mm)", encoder.getDistance());
 		networkTable.putNumber("encoder distance (in)", encoder.getDistance() / 25.4);
+
+		networkTable.putNumber("strafe distance traveled (mm)", strafage.totalDistanceTraveled());
+		networkTable.putNumber("strafe distance traveled (in)", strafage.totalDistanceTraveled() / 25.4);
 		recorderContext.tick();
 	}
 	

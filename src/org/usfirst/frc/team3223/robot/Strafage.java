@@ -42,8 +42,12 @@ public class Strafage {
 
 		context.add("encoder distance", () -> encoder.getDistance());
 		context.add("distance to travel", () -> distanceToTravel);
-		context.add("distance traveled", () -> sumDistanceTraveled + encoder.getDistance());
+		context.add("distance traveled", () -> totalDistanceTraveled());
 		context.add("strafe state", () -> strafyState.toString());
+	}
+	
+	public double totalDistanceTraveled() {
+		return sumDistanceTraveled + encoder.getDistance();
 	}
 	
 	public void reset() {
