@@ -16,9 +16,9 @@ public class Strafage {
 	Supplier<Integer> getState;
 	Consumer<Integer> setState;
 	private double distanceToTravel;
-	private double distanceOffset = -15;
-	double okThresholdDistance = 10;
-	double decelerateThresholdDistance = 25; // todo: calibrate
+	private double distanceOffset = 0;
+	double okThresholdDistance = 20;
+	double decelerateThresholdDistance = 50; // todo: calibrate
 	private int strafyState = 0; // 0 -> init, 1 -> strafe left, 2 -> strafe right, 3 -> done
 	long currentTime;
 	long startTime;
@@ -47,17 +47,24 @@ public class Strafage {
 	
 	public void setDistance(double distance_mm) {
 		this.distanceToTravel = distance_mm;
+		if((strafyState == 1 || strafyState == 2) && Math.abs(distance_mm) > okThresholdDistance + distanceOffset) {
+			reinit();
+		}
+		
 	}
 	
+	private void reinit() {
+		this.encoder.reset();
+		if(distanceToTravel > okThresholdDistance + distanceOffset) {
+			strafyState = 1;
+		}else if(distanceToTravel < -okThresholdDistance + distanceOffset){
+			strafyState = 2;
+		}
+	}
 	public void strafe(Robot robot, int strafeState, int endState) {
 		
 		if(strafeState == this.getState.get() && strafyState == 0){
-			this.encoder.reset();
-			if(distanceToTravel > okThresholdDistance + distanceOffset) {
-				strafyState = 1;
-			}else if(distanceToTravel < -okThresholdDistance + distanceOffset){
-				strafyState = 2;
-			}
+			reinit();
 		}else if(strafyState == 1) {
 			// strafe right
 			double distanceTraveled = this.encoder.getDistance();

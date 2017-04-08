@@ -125,7 +125,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 			back_right_motor.set(-v);
 		});
 		translationalStateMachine = new TranslationalStateMachine(this);
-		this.encoder = new Encoder(1, 2, false, Encoder.EncodingType.k4X);
+		this.encoder = new Encoder(1, 2, true, Encoder.EncodingType.k4X);
 		this.strafage = new Strafage(this.encoder, () -> FarGearState, (Integer i) -> {
 			FarGearState = i;
 		});
@@ -425,6 +425,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 		strafage.reset();
 		strafage.setDistance(500);
 		dozup = false;
+		mode = DriveState.FindLiftStart;
 	}
 	/**
 	 * This function is called periodically during test mode
@@ -439,7 +440,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 		if(!dozup) {
 			driveRobot(0,0,0);
 		}
-		if(dozup) {
+		if(dozup && mode != DriveState.FindLiftContinue) {
 			findLift2();
 		}
 
@@ -518,7 +519,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 			approachFarGear();
 			break;
 		case FindLift:
-			findLift();
+			findLift2();
 			break;
 		case GoLift:
 			goLift();
@@ -608,6 +609,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 			if(turningStateMachine.isDone()){
 				turningStateMachine.reset();
 				FarGearState = 2;
+				leftTime = System.currentTimeMillis();
 			}
 			
 		}
@@ -615,7 +617,7 @@ public class Robot extends IterativeRobot implements ITableListener {
 		if(visionState.seesLift()&&FarGearState == 2){
 			FarGearState = 20;
 			autoMode = AutonomousMode.FindLift;
-		}else if(!visionState.seesLift()&&FarGearState == 2){
+		}else if(!visionState.seesLift() && FarGearState == 2 && System.currentTimeMillis() - leftTime > 2000){
 			FarGearState = 3;
 		}	
 		
@@ -683,18 +685,22 @@ public class Robot extends IterativeRobot implements ITableListener {
 			}
 		}
     }
-
+    private long leftTime;
+    private long rightTime;
 	private void approachLeftFarGear()
 	{
         double angle = Math.toRadians(45);
 		// Turn right X degrees when FarGearState == 1
         turnRight(angle, 1, 2);
+        if(FarGearState == 1) {
+			leftTime = System.currentTimeMillis();
+        }
 
 		// Check to see Lift, if not turn to face straight ahead
 		if(visionState.seesLift()&&FarGearState == 2){
 			FarGearState = 20;
 			autoMode = AutonomousMode.FindLift;
-		}else if(!visionState.seesLift()&&FarGearState == 2){
+		}else if(!visionState.seesLift()&&FarGearState == 2 && System.currentTimeMillis()-leftTime > 2000){
 			FarGearState = 5;
 		}	
 		
@@ -720,12 +726,15 @@ public class Robot extends IterativeRobot implements ITableListener {
         double angle = Math.toRadians(45);
 		// Turn left X degrees
         turnLeft(angle, 1, 2);
+        if(FarGearState == 1) {
+        	rightTime = System.currentTimeMillis();
+        }
 
 		// Check to see Lift, if not turn to face straight ahead
 		if(visionState.seesLift()&&FarGearState == 2){
 			FarGearState = 20;
 			autoMode = AutonomousMode.FindLift;
-		}else if(!visionState.seesLift()&&FarGearState == 2){
+		}else if(!visionState.seesLift()&&FarGearState == 2 && System.currentTimeMillis() - rightTime > 2000){
 			FarGearState = 5;
 		}	
 		
