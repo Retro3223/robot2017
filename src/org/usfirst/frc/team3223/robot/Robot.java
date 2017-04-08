@@ -348,14 +348,14 @@ public class Robot extends IterativeRobot implements ITableListener {
 
 	private void goLift() {
 		driveRobot(0, -0.3, 0);
-		if(sensorManager.getYAccel()>1){
-			driveRobot(0,0,0);
-			if(!isAuto){
-				mode = DriveState.HumanDrive;
-			}else{
-				autoMode = AutonomousMode.GoForwardALittle;
-			}
-		}
+//		if(sensorManager.getYAccel()>1){
+//			driveRobot(0,0,0);
+//			if(!isAuto){
+//				mode = DriveState.HumanDrive;
+//			}else{
+//				autoMode = AutonomousMode.GoForwardALittle;
+//			}
+//		}
 	}
 
 	
