@@ -494,7 +494,7 @@ public class Robot extends IterativeRobot implements ITableListener {
             }
             break;
 		case Forward:
-			translationalStateMachine.setInputDistance(23);
+			translationalStateMachine.setInputDistance(25);
 			translationalStateMachine.run();
 			if(translationalStateMachine.isDone()){
 				translationalStateMachine.reset();
